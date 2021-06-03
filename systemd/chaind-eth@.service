@@ -1,0 +1,10 @@
+[Unit]
+Description=Chaind socket activation
+Requires=chaind-eth-queue@.service
+After=chaind-eth-queue@.service
+
+[Service]
+Environment="SESSION_RUNTIME_DIR=/run/user/%U/chaind/eth/%i"
+ExecStartPre=/bin/bash /home/lash/.config/systemd/user/chaind-eth-ready.sh /run/user/%U/chaind/eth/%i/chaind.sock
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd /run/user/%U/chaind/eth/%i/chaind.sock
+Restart=on-failure

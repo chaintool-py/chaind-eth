@@ -1,0 +1,10 @@
+[Unit]
+Description=Chainqueue transaction dispatch interface
+Requires=chaind-eth-sync@.service
+After=chaind-eth-sync@.service
+
+[Service]
+Environment="SESSION_ID=%i"
+Environment="SESSION_RUNTIME_DIR=/run/user/%U/chaind/eth"
+ExecStart=%h/.local/bin/chaind-eth-server -v --session-id %i
+Restart=on-failure

@@ -50,12 +50,12 @@ args_override = {
             'SESSION_CHAIN_SPEC': getattr(args, 'i'),
             'RPC_ENDPOINT': getattr(args, 'p'),
             'SESSION_DATA_DIR': getattr(args, 'data_dir'),
+            'SESSION_ID': getattr(args, 'session_id'),
         }
 config.dict_override(args_override, 'cli args')
-config.add(getattr(args, 'session_id'), '_SESSION_ID', True)
 
 if not config.get('SESSION_SOCKET_PATH'):
-    socket_path = os.path.join(config.get('SESSION_RUNTIME_DIR'), config.get('_SESSION_ID'), 'chainqueue.sock')
+    socket_path = os.path.join(config.get('SESSION_RUNTIME_DIR'), config.get('SESSION_ID'), 'chaind.sock')
     config.add(socket_path, 'SESSION_SOCKET_PATH', True)
 
 if config.get('DATABASE_ENGINE') == 'sqlite':
@@ -168,8 +168,11 @@ def main():
 
         logg.debug('recv {} bytes'.format(len(data)))
         r = adapter.add(chain_spec, data)
-        r = srvs.send(r.to_bytes(4, byteorder='big'))
-        logg.debug('{} bytes sent'.format(r))
+        try:
+            r = srvs.send(r.to_bytes(4, byteorder='big'))
+            logg.debug('{} bytes sent'.format(r))
+        except BrokenPipeError:
+            logg.debug('they just hung up. how rude.')
         srvs.close()
 
     ctrl.shutdown(None, None)
