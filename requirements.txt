@@ -1,0 +1,6 @@
+chainlib>0.0.2,<=0.0.3
+chainqueue>0.0.1,<=.0.0.2
+chainsyncer>0.0.1,<=0.0.2
+confini>0.3.5,<=0.3.6
+pyxdg~=0.26
+hexathon~=0.0.1a7
