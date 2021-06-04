@@ -19,6 +19,7 @@ from chainqueue.sql.backend import SQLBackend
 from chainqueue.db import dsn_from_config
 
 # local imports
+from chaind_eth.dispatch import Dispatcher
 from chainqueue.adapters.eth import EthAdapter
 
 logging.basicConfig(level=logging.WARNING)
@@ -128,7 +129,6 @@ def main():
             logg.debug('getting connection')
             (srvs, srvs_addr) = ctrl.get_connection()
         except OSError as e:
-            havesends = 0
             try:
                 fi = os.stat(config.get('SESSION_SOCKET_PATH'))
             except FileNotFoundError:
@@ -139,12 +139,11 @@ def main():
                 break
             if srvs == None:
                 logg.debug('timeout (remote socket is none)')
-                txs = adapter.upcoming(chain_spec)
-                for k in txs.keys():
-                    havesends += 1
-                    logg.debug('txs {} {}'.format(k, txs[k]))
-                    adapter.dispatch(chain_spec, rpc, k, txs[k])
-                if havesends > 0:
+                dispatcher = Dispatcher(chain_spec, adapter)
+                session = backend.create_session()
+                r = dispatcher.process(rpc, session)
+                session.close()
+                if r > 0:
                     ctrl.srv.settimeout(0.1)
                 else:
                     ctrl.srv.settimeout(4.0)
@@ -167,12 +166,14 @@ def main():
             continue
 
         logg.debug('recv {} bytes'.format(len(data)))
-        r = adapter.add(chain_spec, data)
+        session = backend.create_session()
+        r = adapter.add(chain_spec, data, session)
         try:
             r = srvs.send(r.to_bytes(4, byteorder='big'))
             logg.debug('{} bytes sent'.format(r))
         except BrokenPipeError:
             logg.debug('they just hung up. how rude.')
+        session.close()
         srvs.close()
 
     ctrl.shutdown(None, None)
