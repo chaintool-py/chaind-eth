@@ -16,6 +16,7 @@ from hexathon import strip_0x
 from chainlib.chain import ChainSpec
 from chainlib.eth.connection import EthHTTPConnection
 from chainqueue.sql.backend import SQLBackend
+from chainlib.error import JSONRPCException
 from chainqueue.db import dsn_from_config
 
 # local imports
@@ -167,12 +168,15 @@ def main():
 
         logg.debug('recv {} bytes'.format(len(data)))
         session = backend.create_session()
-        r = adapter.add(chain_spec, data, session)
         try:
-            r = srvs.send(r.to_bytes(4, byteorder='big'))
-            logg.debug('{} bytes sent'.format(r))
-        except BrokenPipeError:
-            logg.debug('they just hung up. how rude.')
+            r = adapter.add(data, chain_spec, session=session)
+            try:
+                r = srvs.send(r.to_bytes(4, byteorder='big'))
+                logg.debug('{} bytes sent'.format(r))
+            except BrokenPipeError:
+                logg.debug('they just hung up. how rude.')
+        except ValueError as e:
+            logg.error('invalid input: {}'.format(e))
         session.close()
         srvs.close()
 

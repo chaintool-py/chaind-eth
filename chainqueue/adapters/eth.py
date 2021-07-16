@@ -11,12 +11,11 @@ from hexathon import (
 
 # local imports
 from chainqueue.adapters.base import Adapter
-from chainqueue.enum import StatusBits
 
 
 class EthAdapter(Adapter):
 
-    def translate(self, bytecode, chain_spec):
+    def translate(self, chain_spec, bytecode):
         tx = unpack(bytecode, chain_spec)
         tx['source_token'] = ZERO_ADDRESS
         tx['destination_token'] = ZERO_ADDRESS
@@ -25,8 +24,8 @@ class EthAdapter(Adapter):
         return tx
 
 
-    def add(self, chain_spec, bytecode, session):
-        tx = self.translate(bytecode, chain_spec)
+    def add(self, chain_spec, bytecode, session=None):
+        tx = self.translate(chain_spec, bytecode)
         r = self.backend.create(chain_spec, tx['nonce'], tx['from'], tx['hash'], add_0x(bytecode.hex()), session=session)
         if r:
             session.rollback()
@@ -42,12 +41,3 @@ class EthAdapter(Adapter):
 #        r = self.backend.create(chain_spec, tx['nonce'], tx['from'], tx['hash'], add_0x(bytecode.hex()), session=session)
 #        session.close()
 
-
-    def upcoming(self, chain_spec, session):
-        return self.backend.get(chain_spec, StatusBits.QUEUED, unpack) # possible maldesign, up-stack should use our session?
-
-
-    def dispatch(self, chain_spec, rpc, tx_hash, signed_tx, session):
-        o = raw(signed_tx)
-        r = self.backend.dispatch(chain_spec, rpc, tx_hash, o)
-        return r

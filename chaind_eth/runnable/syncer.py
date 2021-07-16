@@ -16,10 +16,8 @@ from hexathon import strip_0x
 from chainlib.chain import ChainSpec
 from chainlib.eth.connection import EthHTTPConnection
 from chainlib.eth.block import block_latest
-from chainsyncer.driver import (
-        HeadSyncer,
-        HistorySyncer,
-        )
+from chainsyncer.driver.head import HeadSyncer
+from chainsyncer.driver.history import HistorySyncer
 from chainsyncer.db import dsn_from_config
 from chainsyncer.db.models.base import SessionBase
 from chainsyncer.backend.sql import SQLBackend
@@ -27,6 +25,7 @@ from chainsyncer.error import SyncDone
 
 # local imports
 from chaind_eth.filter import StateFilter
+from chaind_eth.chain import EthChainInterface
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
@@ -113,11 +112,12 @@ def main():
         for syncer_backend in syncer_backends:
             logg.info('resuming sync session {}'.format(syncer_backend))
 
+    chain_interface = EthChainInterface()
     for syncer_backend in syncer_backends:
-        syncers.append(HistorySyncer(syncer_backend))
+        syncers.append(HistorySyncer(syncer_backend, chain_interface))
 
     syncer_backend = SQLBackend.live(chain_spec, block_offset+1)
-    syncers.append(HeadSyncer(syncer_backend))
+    syncers.append(HeadSyncer(syncer_backend, chain_interface))
 
     state_filter = StateFilter(chain_spec)
     filters = [
