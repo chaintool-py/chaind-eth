@@ -26,6 +26,9 @@ from chainqueue.adapters.eth import EthAdapter
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
 
+script_dir = os.path.dirname(os.path.realpath(__file__))
+config_dir = os.path.join(script_dir, '..', 'data', 'config')
+
 env = Environment(domain='eth', env=os.environ)
 
 argparser = argparse.ArgumentParser('chainqueue transaction submission and trigger server')
@@ -45,11 +48,11 @@ elif args.v:
     logg.setLevel(logging.INFO)
 
 # process config
-config = confini.Config(args.c)
+config = confini.Config(config_dir, override_dirs=[args.c])
 config.process()
 args_override = {
             'SESSION_RUNTIME_DIR': getattr(args, 'runtime_dir'),
-            'SESSION_CHAIN_SPEC': getattr(args, 'i'),
+            'CHAIN_SPEC': getattr(args, 'i'),
             'RPC_ENDPOINT': getattr(args, 'p'),
             'SESSION_DATA_DIR': getattr(args, 'data_dir'),
             'SESSION_ID': getattr(args, 'session_id'),
@@ -115,12 +118,20 @@ ctrl = SessionController(config)
 signal.signal(signal.SIGINT, ctrl.shutdown)
 signal.signal(signal.SIGTERM, ctrl.shutdown)
 
-chain_spec = ChainSpec.from_chain_str(config.get('SESSION_CHAIN_SPEC'))
+chain_spec = ChainSpec.from_chain_str(config.get('CHAIN_SPEC'))
 
 dsn = dsn_from_config(config)
 backend = SQLBackend(dsn, debug=config.true('DATABASE_DEBUG'))
 adapter = EthAdapter(backend)
 rpc = EthHTTPConnection(url=config.get('RPC_ENDPOINT'), chain_spec=chain_spec)
+
+
+def process_outgoing(chain_spec, adapter, rpc):
+    dispatcher = Dispatcher(chain_spec, adapter)
+    session = adapter.create_session()
+    r = dispatcher.process(rpc, session)
+    session.close()
+
 
 def main():
     havesends = 0
@@ -140,10 +151,7 @@ def main():
                 break
             if srvs == None:
                 logg.debug('timeout (remote socket is none)')
-                dispatcher = Dispatcher(chain_spec, adapter)
-                session = backend.create_session()
-                r = dispatcher.process(rpc, session)
-                session.close()
+                process_outgoing(chain_spec, adapter, rpc)
                 if r > 0:
                     ctrl.srv.settimeout(0.1)
                 else:

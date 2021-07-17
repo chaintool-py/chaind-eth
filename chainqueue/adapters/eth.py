@@ -24,6 +24,16 @@ class EthAdapter(Adapter):
         return tx
 
 
+    def dispatch(self, chain_spec, rpc, tx_hash, signed_tx, session=None):
+        o = raw(signed_tx)
+        r = self.backend.dispatch(chain_spec, rpc, tx_hash, o)
+        return r
+
+
+    def upcoming(self, chain_spec, session=None):
+        return self.backend.get(chain_spec, StatusBits.QUEUED, self.translate) # possible maldesign, up-stack should use our session?
+
+
     def add(self, chain_spec, bytecode, session=None):
         tx = self.translate(chain_spec, bytecode)
         r = self.backend.create(chain_spec, tx['nonce'], tx['from'], tx['hash'], add_0x(bytecode.hex()), session=session)
