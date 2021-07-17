@@ -1,0 +1,9 @@
+[run]
+omit =
+	.venv/*
+	scripts/*
+	tests/*
+source =
+	chainqueue/adapters
+	chainqueue
+	chaind_eth
