@@ -7,11 +7,10 @@ import os
 import logging
 import stat
 import argparse
-import uuid
 
 # external imports
+import chainlib.eth.cli
 from chaind import Environment
-import confini
 from hexathon import strip_0x
 from chainlib.chain import ChainSpec
 from chainlib.eth.connection import EthHTTPConnection
@@ -31,40 +30,33 @@ config_dir = os.path.join(script_dir, '..', 'data', 'config')
 
 env = Environment(domain='eth', env=os.environ)
 
-argparser = argparse.ArgumentParser('chainqueue transaction submission and trigger server')
-argparser.add_argument('-c', '--config', dest='c', type=str, default=env.config_dir, help='configuration directory')
-argparser.add_argument('-p', type=str, help='rpc endpoint')
-argparser.add_argument('-i', type=str, help='chain spec')
-argparser.add_argument('--runtime-dir', dest='runtime_dir', type=str, default=env.runtime_dir, help='runtime directory')
-argparser.add_argument('--data-dir', dest='data_dir', type=str, default=env.data_dir, help='data directory')
-argparser.add_argument('--session-id', dest='session_id', type=str, default=env.session, help='session id to use for session')
-argparser.add_argument('-v', action='store_true', help='be verbose')
-argparser.add_argument('-vv', action='store_true', help='be very verbose')
-args = argparser.parse_args(sys.argv[1:])
-
-if args.vv:
-    logg.setLevel(logging.DEBUG)
-elif args.v:
-    logg.setLevel(logging.INFO)
-
-# process config
-config = confini.Config(config_dir, override_dirs=[args.c])
-config.process()
-args_override = {
-            'SESSION_RUNTIME_DIR': getattr(args, 'runtime_dir'),
-            'CHAIN_SPEC': getattr(args, 'i'),
-            'RPC_ENDPOINT': getattr(args, 'p'),
-            'SESSION_DATA_DIR': getattr(args, 'data_dir'),
-            'SESSION_ID': getattr(args, 'session_id'),
+arg_flags = chainlib.eth.cli.argflag_std_read
+argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
+argparser.add_argument('--data-dir', type=str, help='data directory')
+argparser.add_argument('--runtime-dir', type=str, help='runtime directory')
+argparser.add_argument('--session-id', type=str, help='runtime directory')
+args = argparser.parse_args()
+extra_args = {
+    'runtime_dir': 'SESSION_RUNTIME_DIR',
+    'data_dir': 'SESSION_DATA_DIR',
+    'session_id': 'SESSION_ID', 
         }
-config.dict_override(args_override, 'cli args')
+#config = chainlib.eth.cli.Config.from_args(args, arg_flags, default_config_dir=config_dir, extend_base_config_dir=config_dir)
+config = chainlib.eth.cli.Config.from_args(args, arg_flags, base_config_dir=config_dir)
 
+logg.debug('session id {} {}'.format(type(config.get('SESSION_ID')), config.get('SESSION_ID')))
+if config.get('SESSION_ID') == None:
+    config.add(env.session, 'SESSION_ID', exists_ok=True)
+if config.get('SESSION_RUNTIME_DIR') == None:
+    config.add(env.runtime_dir, 'SESSION_RUNTIME_DIR', exists_ok=True)
+if config.get('SESSION_DATA_DIR') == None:
+    config.add(env.data_dir, 'SESSION_DATA_DIR', exists_ok=True)
 if not config.get('SESSION_SOCKET_PATH'):
     socket_path = os.path.join(config.get('SESSION_RUNTIME_DIR'), config.get('SESSION_ID'), 'chaind.sock')
     config.add(socket_path, 'SESSION_SOCKET_PATH', True)
 
 if config.get('DATABASE_ENGINE') == 'sqlite':
-    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME')), 'DATABASE_NAME', True)
+    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME') + '.sqlite'), 'DATABASE_NAME', exists_ok=True)
     
 config.censor('PASSWORD', 'DATABASE')
 logg.debug('config loaded:\n{}'.format(config))
