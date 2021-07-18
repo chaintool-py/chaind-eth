@@ -9,6 +9,7 @@ from chainlib.eth.tx import (
         Tx,
         )
 
+
 class EthChainInterface(ChainInterface):
 
     def __init__(self):

@@ -40,10 +40,9 @@ from chainqueue.sql.state import (
         set_ready,
         )
 
-
-
 # local imports
 from chaind_eth.filter import StateFilter
+from chaind_eth.chain import EthChainInterface
 
 # test imports
 from tests.chaind_eth_base import TestBase
@@ -62,12 +61,15 @@ class TestFilter(TestBase):
         o = raw(tx_raw_rlp_signed)
         self.rpc.do(o)
 
-        o = receipt(tx_hash)
+        #o = receipt(tx_hash)
+        o = self.interface.tx_receipt(tx_hash)
         rcpt = self.rpc.do(o)
 
-        o = block_by_hash(rcpt['block_hash'])
+        #o = block_by_hash(rcpt['block_hash'])
+        o = self.interface.block_by_number(rcpt['block_number'])
         block_src = self.rpc.do(o)
-        block = Block(block_src)
+        #block = Block(block_src)
+        block = self.interface.block_from_src(block_src)
 
         dsn = dsn_from_config(db_config)
         backend = SQLBackend(dsn, debug=bool(os.environ.get('DATABASE_DEBUG')))
@@ -81,6 +83,7 @@ class TestFilter(TestBase):
         set_sent(self.chain_spec, tx_hash, session=self.session_chainqueue)      
 
         tx_src = unpack(tx_raw_rlp_signed_bytes, self.chain_spec)
+        tx_src = self.interface.src_normalize(tx_src)
         tx = Tx(tx_src, block=block, rcpt=rcpt)
 
         tx_repr = get_tx(self.chain_spec, tx_hash, session=self.session_chainqueue)

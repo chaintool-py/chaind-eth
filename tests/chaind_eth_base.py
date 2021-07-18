@@ -6,6 +6,9 @@ from chainsyncer.unittest.db import ChainSyncerDb
 from chainqueue.unittest.db import ChainQueueDb
 from chainlib.eth.unittest.ethtester import EthTesterCase
 
+# local imports
+from chaind_eth.chain import EthChainInterface
+
 
 class TestBase(EthTesterCase):
 
@@ -16,6 +19,8 @@ class TestBase(EthTesterCase):
 
         self.db_chainqueue = ChainQueueDb()
         self.session_chainqueue = self.db_chainqueue.bind_session()
+
+        self.interface = EthChainInterface()
 
     def tearDown(self):
         self.session_chainsyncer.commit()
