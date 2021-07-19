@@ -115,7 +115,7 @@ chain_spec = ChainSpec.from_chain_str(config.get('CHAIN_SPEC'))
 dsn = dsn_from_config(config)
 backend = SQLBackend(dsn, debug=config.true('DATABASE_DEBUG'))
 adapter = EthAdapter(backend)
-rpc = EthHTTPConnection(url=config.get('RPC_ENDPOINT'), chain_spec=chain_spec)
+rpc = EthHTTPConnection(url=config.get('RPC_HTTP_PROVIDER'), chain_spec=chain_spec)
 
 
 def process_outgoing(chain_spec, adapter, rpc):
@@ -123,6 +123,7 @@ def process_outgoing(chain_spec, adapter, rpc):
     session = adapter.create_session()
     r = dispatcher.process(rpc, session)
     session.close()
+    return r
 
 
 def main():
@@ -143,7 +144,7 @@ def main():
                 break
             if srvs == None:
                 logg.debug('timeout (remote socket is none)')
-                process_outgoing(chain_spec, adapter, rpc)
+                r = process_outgoing(chain_spec, adapter, rpc)
                 if r > 0:
                     ctrl.srv.settimeout(0.1)
                 else:
