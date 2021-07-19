@@ -10,6 +10,7 @@ import argparse
 import uuid
 
 # external imports
+import chainlib.eth.cli
 from chaind import Environment
 import confini
 from hexathon import strip_0x
@@ -30,54 +31,51 @@ from chaind_eth.chain import EthChainInterface
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
 
+script_dir = os.path.dirname(os.path.realpath(__file__))
+config_dir = os.path.join(script_dir, '..', 'data', 'config')
+
 env = Environment(domain='eth', env=os.environ)
 
-argparser = argparse.ArgumentParser('chainqueue transaction submission and trigger server')
-argparser.add_argument('-c', '--config', dest='c', type=str, default=env.config_dir, help='configuration directory')
-argparser.add_argument('-p', type=str, help='rpc endpoint')
-argparser.add_argument('-i', type=str, help='chain spec')
-argparser.add_argument('--runtime-dir', dest='runtime_dir', type=str, default=env.runtime_dir, help='runtime directory')
-argparser.add_argument('--data-dir', dest='data_dir', type=str, default=env.data_dir, help='data directory')
-argparser.add_argument('--session-id', dest='session_id', type=str, default=env.session, help='session id to use for session')
-argparser.add_argument('--offset', type=int, default=0, help='block number to start sync')
-argparser.add_argument('--skip-history', action='store_true', help='do not sync initial history')
-argparser.add_argument('--interval', type=int, default=5, help='sync pool interval, in seconds')
-argparser.add_argument('-v', action='store_true', help='be verbose')
-argparser.add_argument('-vv', action='store_true', help='be very verbose')
-args = argparser.parse_args(sys.argv[1:])
-
-if args.vv:
-    logg.setLevel(logging.DEBUG)
-elif args.v:
-    logg.setLevel(logging.INFO)
-
-# process config
-config = confini.Config(args.c)
-config.process()
-args_override = {
-            'SESSION_RUNTIME_DIR': getattr(args, 'runtime_dir'),
-            'SESSION_CHAIN_SPEC': getattr(args, 'i'),
-            'RPC_ENDPOINT': getattr(args, 'p'),
-            'SESSION_DATA_DIR': getattr(args, 'data_dir'),
-            'SYNCER_LOOP_INTERVAL': getattr(args, 'interval'),
-            'SYNCER_HISTORY_START': getattr(args, 'offset'),
-            'SYNCER_SKIP_HISTORY': getattr(args, 'skip_history'),
-            'SESSION_ID': getattr(args, 'session_id'),
+arg_flags = chainlib.eth.cli.argflag_std_read
+argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
+argparser.add_argument('--data-dir', type=str, help='data directory')
+argparser.add_argument('--runtime-dir', type=str, help='runtime directory')
+argparser.add_argument('--session-id', dest='session_id', type=str, help='session identifier')
+argparser.add_argument('--offset', default=0, type=int, help='block height to sync history from')
+args = argparser.parse_args()
+extra_args = {
+    'runtime_dir': 'SESSION_RUNTIME_DIR',
+    'data_dir': 'SESSION_DATA_DIR',
+    'session_id': 'SESSION_ID', 
+    'offset': 'SYNCER_HISTORY_START',
         }
-config.dict_override(args_override, 'cli flag')
+#config = chainlib.eth.cli.Config.from_args(args, arg_flags, default_config_dir=config_dir, extend_base_config_dir=config_dir)
+config = chainlib.eth.cli.Config.from_args(args, arg_flags, extra_args=extra_args, base_config_dir=[config_dir, os.path.join(config_dir, 'syncer')])
+
+logg.debug('session id {} {}'.format(type(config.get('SESSION_ID')), config.get('SESSION_ID')))
+if config.get('SESSION_ID') == None:
+    config.add(env.session, 'SESSION_ID', exists_ok=True)
+if config.get('SESSION_RUNTIME_DIR') == None:
+    config.add(env.runtime_dir, 'SESSION_RUNTIME_DIR', exists_ok=True)
+if config.get('SESSION_DATA_DIR') == None:
+    config.add(env.data_dir, 'SESSION_DATA_DIR', exists_ok=True)
+if not config.get('SESSION_SOCKET_PATH'):
+    socket_path = os.path.join(config.get('SESSION_RUNTIME_DIR'), config.get('SESSION_ID'), 'chaind.sock')
+    config.add(socket_path, 'SESSION_SOCKET_PATH', True)
 
 if config.get('DATABASE_ENGINE') == 'sqlite':
-    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME')), 'DATABASE_NAME', True)
- 
+    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME') + '.sqlite'), 'DATABASE_NAME', exists_ok=True)
+    
 config.censor('PASSWORD', 'DATABASE')
-logg.debug('config loaded\n{}'.format(config))
+logg.debug('config loaded:\n{}'.format(config))
 
-chain_spec = ChainSpec.from_chain_str(config.get('SESSION_CHAIN_SPEC'))
+
+chain_spec = ChainSpec.from_chain_str(config.get('CHAIN_SPEC'))
 
 dsn = dsn_from_config(config)
+logg.debug('dns {}'.format(dsn))
 SQLBackend.setup(dsn, debug=config.true('DATABASE_DEBUG'))
-rpc = EthHTTPConnection(url=config.get('RPC_ENDPOINT'), chain_spec=chain_spec)
-
+rpc = EthHTTPConnection(url=config.get('RPC_HTTP_PROVIDER'), chain_spec=chain_spec)
 
 def register_filter_tags(filters, session):
     for f in filters:
@@ -101,7 +99,9 @@ def main():
     syncer_backends = SQLBackend.resume(chain_spec, block_offset)
 
     if len(syncer_backends) == 0:
-        initial_block_start = config.get('SYNCER_HISTORY_START')
+        initial_block_start = config.get('SYNCER_HISTORY_START', 0)
+        if isinstance(initial_block_start, str):
+            initial_block_start = int(initial_block_start)
         initial_block_offset = block_offset
         if config.true('SYNCER_SKIP_HISTORY'):
             initial_block_start = block_offset
