@@ -4,6 +4,7 @@ import logging
 # external imports
 from chainlib.eth.address import to_checksum_address
 from chainlib.eth.tx import unpack
+from chainlib.error import JSONRPCException
 from chainqueue.enum import StatusBits
 from chainqueue.sql.query import count_tx
 from hexathon import strip_0x

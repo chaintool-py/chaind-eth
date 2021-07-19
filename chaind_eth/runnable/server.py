@@ -34,7 +34,7 @@ arg_flags = chainlib.eth.cli.argflag_std_read
 argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
 argparser.add_argument('--data-dir', type=str, help='data directory')
 argparser.add_argument('--runtime-dir', type=str, help='runtime directory')
-argparser.add_argument('--session-id', type=str, help='runtime directory')
+argparser.add_argument('--session-id', dest='session_id', type=str, help='session identifier')
 args = argparser.parse_args()
 extra_args = {
     'runtime_dir': 'SESSION_RUNTIME_DIR',
@@ -42,7 +42,7 @@ extra_args = {
     'session_id': 'SESSION_ID', 
         }
 #config = chainlib.eth.cli.Config.from_args(args, arg_flags, default_config_dir=config_dir, extend_base_config_dir=config_dir)
-config = chainlib.eth.cli.Config.from_args(args, arg_flags, base_config_dir=config_dir)
+config = chainlib.eth.cli.Config.from_args(args, arg_flags, extra_args=extra_args, base_config_dir=config_dir)
 
 logg.debug('session id {} {}'.format(type(config.get('SESSION_ID')), config.get('SESSION_ID')))
 if config.get('SESSION_ID') == None:
