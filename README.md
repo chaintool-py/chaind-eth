@@ -22,6 +22,7 @@ It capabilities are (unchecked box means feature not yet completed):
 
 For these examples you need:
 
+- linux (tested on 5.12.x)
 - python 3.9.x
 - pip
 - virtualenv
