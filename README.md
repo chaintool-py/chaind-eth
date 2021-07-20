@@ -14,6 +14,9 @@ It capabilities are (unchecked box means feature not yet completed):
 	* [x] only show transaction with errors
 	* [x] only show transaction that have not yet completed
 - [x] systemd unit / socket service
+- [x] sql storage backend
+- [ ] filesystem storage backend
+
 
 ## prerequisites
 
@@ -26,18 +29,13 @@ For these examples you need:
 - sqlite
 - an EVM RPC endpoint
 
-For any python command / executable use:
+For any python command / executable used below:
 
-* `-v` or `-vv` to get more information about what is going on
-* `--help` for information on how to use and parameters that can be passed
-
-
-## usage example
+* add `-v` or `-vv` to get more information about what is going on
+* use with `--help` for information on how to use and parameters that can be passed
 
 
-### set up database
-
-In terminal window A
+## setting up the database backend
 
 Currently there is no more practical way of setting up the database backend :/
 
@@ -51,7 +49,12 @@ pip install --extra-index-url https://pip.grassrootseconomics.net:8433 -r requir
 PYTHONPATH=. CHAIND_DOMAIN=eth DATABASE_ENGINE=sqlite python scripts/migrate.py
 ```
 
+
+## usage example
+
 ### create an empty working directory
+
+In terminal window A
 
 ```
 d=$(mktemp -d) && cd $d
