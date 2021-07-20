@@ -1,4 +1,3 @@
 chaind<=0.0.1,>=0.0.1a5
 hexathon~=0.0.1a7
-chainlib-eth<=0.0.6,>0.0.6a1
-#chainlib-eth~=0.0.5a4
+chainlib-eth<=0.0.6,>=0.0.6a1
