@@ -22,7 +22,7 @@ It capabilities are (unchecked box means feature not yet completed):
 
 For these examples you need:
 
-- linux (tested on 5.12.x)
+- linux (tested on 5.12.x, perhaps wsl/macos will work too, no guarantees, though)
 - python 3.9.x
 - pip
 - virtualenv
