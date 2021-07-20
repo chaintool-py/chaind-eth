@@ -115,9 +115,9 @@ eth-gas --raw -a $recipient 4096 > tx3.txt
 ### send test transactions to queue
 
 ```
-cat tx1.txt | socat UNIX-CLIENT=/run/user/$UID/testsession/chaind.sock
-cat tx2.txt | socat UNIX-CLIENT=/run/user/$UID/testsession/chaind.sock
-cat tx3.txt | socat UNIX-CLIENT=/run/user/$UID/testsession/chaind.sock
+cat tx1.txt | socat UNIX-CLIENT=/run/user/$UID/chaind/eth/testsession/chaind.sock
+cat tx2.txt | socat UNIX-CLIENT=/run/user/$UID/chaind/eth/testsession/chaind.sock
+cat tx3.txt | socat UNIX-CLIENT=/run/user/$UID/chaind/eth/testsession/chaind.sock
 ```
 
 ### check status of transactions
