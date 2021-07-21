@@ -123,6 +123,7 @@ cat tx3.txt | socat UNIX-CLIENT=/run/user/$UID/chaind/eth/testsession/chaind.soc
 
 ### check status of transactions
 
+
 ```
 export DATABASE_ENGINE=sqlite
 sender=$(eth-keyfile -d $WALLET_KEY_FILE)

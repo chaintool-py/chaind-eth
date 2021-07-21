@@ -162,7 +162,8 @@ def main():
         data = None
         try:
             data_in_str = data_in.decode('utf-8')
-            data = bytes.fromhex(strip_0x(data_in_str))
+            data_hex = strip_0x(data_in_str.rstrip())
+            data = bytes.fromhex(data_hex)
         except ValueError:
             logg.error('invalid input "{}"'.format(data_in_str))
             continue
