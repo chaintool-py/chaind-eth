@@ -17,6 +17,7 @@ from chainlib.eth.connection import EthHTTPConnection
 from chainqueue.sql.backend import SQLBackend
 from chainlib.error import JSONRPCException
 from chainqueue.db import dsn_from_config
+from chaind.sql.session import SessionIndex
 
 # local imports
 from chaind_eth.dispatch import Dispatcher
@@ -59,7 +60,7 @@ if not config.get('SESSION_SOCKET_PATH'):
 
 if config.get('DATABASE_ENGINE') == 'sqlite':
     #config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME') + '.sqlite'), 'DATABASE_NAME', exists_ok=True)
-    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME')), 'DATABASE_NAME', exists_ok=True)
+    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME') + '.sqlite'), 'DATABASE_NAME', exists_ok=True)
     
 config.censor('PASSWORD', 'DATABASE')
 logg.debug('config loaded:\n{}'.format(config))
@@ -116,10 +117,14 @@ signal.signal(signal.SIGTERM, ctrl.shutdown)
 
 chain_spec = ChainSpec.from_chain_str(config.get('CHAIN_SPEC'))
 
+rpc = chainlib.eth.cli.Rpc()
+conn = rpc.connect_by_config(config)
+
+logg.debug('error {}'.format(rpc.error_parser))
 dsn = dsn_from_config(config)
-backend = SQLBackend(dsn, debug=config.true('DATABASE_DEBUG'))
-adapter = EthAdapter(backend)
-rpc = EthHTTPConnection(url=config.get('RPC_HTTP_PROVIDER'), chain_spec=chain_spec)
+backend = SQLBackend(dsn, error_parser=rpc.error_parser, debug=config.true('DATABASE_DEBUG'))
+session_index_backend = SessionIndex(config.get('SESSION_ID'))
+adapter = EthAdapter(backend, session_index_backend=session_index_backend)
 
 
 def process_outgoing(chain_spec, adapter, rpc):
@@ -148,7 +153,7 @@ def main():
                 break
             if srvs == None:
                 logg.debug('timeout (remote socket is none)')
-                r = process_outgoing(chain_spec, adapter, rpc)
+                r = process_outgoing(chain_spec, adapter, conn)
                 if r > 0:
                     ctrl.srv.settimeout(0.1)
                 else:
@@ -174,15 +179,21 @@ def main():
 
         logg.debug('recv {} bytes'.format(len(data)))
         session = backend.create_session()
+        tx_hash = None
         try:
-            r = adapter.add(data, chain_spec, session=session)
-            try:
-                r = srvs.send(r.to_bytes(4, byteorder='big'))
-                logg.debug('{} bytes sent'.format(r))
-            except BrokenPipeError:
-                logg.debug('they just hung up. how rude.')
+            tx_hash = adapter.add(data, chain_spec, session=session)
         except ValueError as e:
             logg.error('invalid input: {}'.format(e))
+
+        r = 1
+        if tx_hash != None:
+            session.commit()
+            r = 0
+        try:
+            r = srvs.send(r.to_bytes(4, byteorder='big'))
+            logg.debug('{} bytes sent'.format(r))
+        except BrokenPipeError:
+            logg.debug('they just hung up. how rude.')
         session.close()
         srvs.close()
 
