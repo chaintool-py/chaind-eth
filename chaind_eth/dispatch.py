@@ -56,11 +56,13 @@ class Dispatcher:
                 logg.debug('too many inflight txs for {}, skipping {}'.format(sender, k))
                 continue
             logg.debug('processing tx {} {}'.format(k, txs[k]))
+            r = 0
             try:
-                self.adapter.dispatch(self.chain_spec, rpc, k, txs[k], session)
+                r = self.adapter.dispatch(self.chain_spec, rpc, k, txs[k], session)
             except JSONRPCException as e:
                 logg.error('dispatch failed for {}: {}'.format(k, e))
                 continue
-            self.inc_count(sender, session)
-            c += 1
+            if r == 0:
+                self.inc_count(sender, session)
+                c += 1
         return c

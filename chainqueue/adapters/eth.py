@@ -1,5 +1,6 @@
 # standard imports
 import logging
+import datetime
 
 # external imports
 from chainlib.eth.constant import ZERO_ADDRESS
@@ -11,13 +12,15 @@ from hexathon import (
         add_0x,
         strip_0x,
         )
-from chainqueue.enum import StatusBits
+from chainqueue.enum import (
+        StatusBits,
+        errors as queue_errors,
+        )
 
 # local imports
 from chainqueue.adapters.base import Adapter
 
-#logg = logging.getLogger(__name__)
-logg = logging.getLogger()
+logg = logging.getLogger(__name__)
 
 
 class EthAdapter(Adapter):
@@ -39,7 +42,12 @@ class EthAdapter(Adapter):
 
 
     def upcoming(self, chain_spec, session=None):
-        return self.backend.get(chain_spec, StatusBits.QUEUED, self.translate) # possible maldesign, up-stack should use our session?
+        txs = self.backend.get(chain_spec, self.translate, session=session, status=StatusBits.QUEUED, not_status=StatusBits.IN_NETWORK)
+        before = datetime.datetime.utcnow() - self.error_retry_threshold
+        errored_txs = self.backend.get(chain_spec, self.translate, session=session, status=StatusBits.LOCAL_ERROR, not_status=StatusBits.FINAL, before=before, requeue=True)
+        for tx_hash in errored_txs.keys():
+            txs[tx_hash] = errored_txs[tx_hash]
+        return txs
 
 
     def add(self, bytecode, chain_spec, session=None):

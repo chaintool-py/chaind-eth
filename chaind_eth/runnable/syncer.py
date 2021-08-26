@@ -64,7 +64,7 @@ if not config.get('SESSION_SOCKET_PATH'):
     config.add(socket_path, 'SESSION_SOCKET_PATH', True)
 
 if config.get('DATABASE_ENGINE') == 'sqlite':
-    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME') + '.sqlite'), 'DATABASE_NAME', exists_ok=True)
+    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME')), 'DATABASE_NAME', exists_ok=True)
     
 config.censor('PASSWORD', 'DATABASE')
 logg.debug('config loaded:\n{}'.format(config))

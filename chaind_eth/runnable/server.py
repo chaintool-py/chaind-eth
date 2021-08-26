@@ -35,11 +35,13 @@ argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
 argparser.add_argument('--data-dir', type=str, help='data directory')
 argparser.add_argument('--runtime-dir', type=str, help='runtime directory')
 argparser.add_argument('--session-id', dest='session_id', type=str, help='session identifier')
+argparser.add_argument('--dispatch-delay', dest='dispatch_delay', type=float, help='socket timeout before processing queue')
 args = argparser.parse_args()
 extra_args = {
     'runtime_dir': 'SESSION_RUNTIME_DIR',
     'data_dir': 'SESSION_DATA_DIR',
     'session_id': 'SESSION_ID', 
+    'dispatch_delay': 'SESSION_DISPATCH_DELAY',
         }
 #config = chainlib.eth.cli.Config.from_args(args, arg_flags, default_config_dir=config_dir, extend_base_config_dir=config_dir)
 config = chainlib.eth.cli.Config.from_args(args, arg_flags, extra_args=extra_args, base_config_dir=config_dir)
@@ -56,7 +58,8 @@ if not config.get('SESSION_SOCKET_PATH'):
     config.add(socket_path, 'SESSION_SOCKET_PATH', True)
 
 if config.get('DATABASE_ENGINE') == 'sqlite':
-    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME') + '.sqlite'), 'DATABASE_NAME', exists_ok=True)
+    #config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME') + '.sqlite'), 'DATABASE_NAME', exists_ok=True)
+    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME')), 'DATABASE_NAME', exists_ok=True)
     
 config.censor('PASSWORD', 'DATABASE')
 logg.debug('config loaded:\n{}'.format(config))
@@ -83,7 +86,8 @@ class SessionController:
         self.srv = socket.socket(family=socket.AF_UNIX, type=socket.SOCK_STREAM)
         self.srv.bind(config.get('SESSION_SOCKET_PATH'))
         self.srv.listen(2)
-        self.srv.settimeout(4.0)
+        self.srv.settimeout(float(config.get('SESSION_DISPATCH_DELAY')))
+
 
     def shutdown(self, signo, frame):
         if self.dead:
