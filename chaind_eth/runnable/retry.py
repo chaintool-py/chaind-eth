@@ -35,7 +35,7 @@ config_dir = os.path.join(script_dir, '..', 'data', 'config')
 arg_flags = chainlib.eth.cli.argflag_std_write
 argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
 argparser.add_argument('--backend', type=str, default='sql', help='Backend to use (currently only "sql")')
-argparser.add_positional('session_id', required=False, type=str, help='Ethereum address of recipient')
+argparser.add_positional('session_id', required=False, type=str, help='Session id to connect to')
 args = argparser.parse_args()
 extra_args = {
     'backend': None,
