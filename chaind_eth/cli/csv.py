@@ -6,7 +6,7 @@ logg = logging.getLogger(__name__)
 
 class CSVProcessor:
 
-    def process(self, s):
+    def load(self, s):
         contents = []
         f = None
         try:
