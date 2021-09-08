@@ -45,10 +45,10 @@ class Processor:
             self.content = processor.load(self.source)
         if self.content != None:
             if process:
-                #try:
-                self.process()
-                #except Exception as e:
-                #    raise TxSourceError('invalid source contents: {}'.format(str(e)))
+                try:
+                    self.process()
+                except Exception as e:
+                    raise TxSourceError('invalid source contents: {}'.format(str(e)))
             return self.content
         raise TxSourceError('unparseable source')
        

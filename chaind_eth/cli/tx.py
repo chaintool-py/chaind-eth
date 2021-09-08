@@ -3,8 +3,7 @@ import logging
 
 logg = logging.getLogger(__name__)
 
-
-class CSVProcessor:
+class TxProcessor:
 
     def load(self, s):
         contents = []
@@ -14,16 +13,11 @@ class CSVProcessor:
         except FileNotFoundError:
             return None
 
-        import csv # only import if needed
-        fr = csv.reader(f)
+        contents = f.readlines()
         f.close()
-
-        for r in fr:
-            contents.append(r)
-        l = len(contents)
-        logg.info('successfully parsed source as csv, found {} records'.format(l))
+        for i in range(len(contents)):
+            contents[i] = contents[i].rstrip()
         return contents
 
-
     def __str__(self):
-        return 'csv processor'
+        return 'tx processor'
