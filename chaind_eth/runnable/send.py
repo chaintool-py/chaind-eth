@@ -102,18 +102,22 @@ class Outputter:
 
 
     def do(self, hx):
-        self.out(hx)
+        return self.out(hx)
 
 
     def do_standard_output(self, hx):
-        sys.stdout.write(hx + '\n')
+        #sys.stdout.write(hx + '\n')
+        return hx
 
 
     def do_unix_socket(self, hx):
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.connect(config.get('_SOCKET'))
         s.send(hx.encode('utf-8'))
+        r = s.recv(64+4)
+        logg.debug('r {}'.format(r))
         s.close()
+        return r[4:].decode('utf-8')
 
 
 def main():
@@ -144,7 +148,7 @@ def main():
         except StopIteration:
             break
         tx_hex = tx_bytes.hex()
-        out.do(tx_hex)
+        print(out.do(tx_hex))
 
 
 if __name__ == '__main__':
