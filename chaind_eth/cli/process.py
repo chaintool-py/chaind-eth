@@ -24,6 +24,7 @@ class Processor:
         self.source = source
         self.processor = []
         self.content = []
+        self.token = []
         self.token_resolver = resolver
         self.cursor = 0
         self.gas_oracle = gas_oracle
@@ -54,7 +55,8 @@ class Processor:
     
     # 0: recipient
     # 1: amount
-    # 2: token identifier
+    # 2: token identifier (optional, when not specified network gas token will be used)
+    # 3: gas amount (optional)
     def process(self):
         txs = []
         for i, r in enumerate(self.content):
@@ -68,10 +70,11 @@ class Processor:
                 self.content[i][1] = int(strip_0x(r[1]), 16)
             native_token_value = 0
             if self.token_resolver == None:
-                self.content[i][2] = None
+                self.token.append(None)
             else:
-                k = r[2]
-                self.content[i][2] = self.token_resolver.lookup(k)
+                #self.content[i][2] = self.token_resolver.lookup(k)
+                token = self.token_resolver.lookup(r[2])
+                self.token.append(token)
 
             if len(self.content[i]) == 3:
                 self.content[i].append(native_token_value)
@@ -94,27 +97,53 @@ class Processor:
         token_factory = None
 
         r = self.content[self.cursor]
-        logg.debug('rrrr {} '.format(r))
-        if r[2] == None:
+        token = self.token[self.cursor]
+        if token == None:
             token_factory = Gas(self.chain_spec, signer=self.signer, gas_oracle=self.gas_oracle, nonce_oracle=self.nonce_oracle)
         else:
             token_factory = ERC20(self.chain_spec, signer=self.signer, gas_oracle=self.gas_oracle, nonce_oracle=self.nonce_oracle)
 
         value = 0
+        gas_value = 0
         data = '0x'
+        debug_destination = (r[2], token)
+        if debug_destination[1] == None:
+            debug_destination = (None, 'network gas token')
         if isinstance(token_factory, ERC20):
-            (tx_hash_hex, o) = token_factory.transfer(r[2], self.sender, r[0], r[1])
+            (tx_hash_hex, o) = token_factory.transfer(token, self.sender, r[0], r[1])
             logg.debug('tx {}'.format(o))
-            # TODO: allow chainlib to return args only
+            # TODO: allow chainlib to return data args only (TxFormat)
             tx = unpack(bytes.fromhex(strip_0x(o['params'][0])), self.chain_spec)
             data = tx['data']
+            try:
+                value = int(r[1])
+            except ValueError:
+                value = int(strip_0x(r[1]), 16)
+            try:
+                gas_value = int(r[3])
+            except:
+                gas_value = int(strip_0x(r[3]), 16)
         else:
-            value = r[1]
+            try:
+                value = int(r[1])
+            except ValueError:
+                value = int(strip_0x(r[1]), 16)
+            gas_value = value
+
+        logg.debug('token factory {} resolved sender {} recipient {} gas value {} token value {} token {}'.format(
+            str(token_factory),
+            self.sender,
+            r[0],
+            gas_value,
+            value,
+            debug_destination,
+            )
+            )
 
         tx = {
             'from': self.sender,
             'to': r[0],
-            'value': value,
+            'value': gas_value,
             'data': data,
             'nonce': nonce,
             'gasPrice': self.gas_price_start,

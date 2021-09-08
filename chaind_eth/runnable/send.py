@@ -6,6 +6,7 @@ import datetime
 import enum
 import re
 import stat
+import socket
 
 # external imports
 import chainlib.eth.cli
@@ -53,12 +54,14 @@ conn = rpc.connect_by_config(config)
 chain_spec = ChainSpec.from_chain_str(config.get('CHAIN_SPEC'))
 
 class OpMode(enum.Enum):
-    STDOUT = 'standard output'
-    UNIX = 'unix socket'
+    STDOUT = 'standard_output'
+    UNIX = 'unix_socket'
 mode = OpMode.STDOUT
 
-re_unix = r'^ipc:///.+'
-if re.match(re_unix, config.get('_SOCKET', '')):
+re_unix = r'^ipc://(/.+)'
+m = re.match(re_unix, config.get('_SOCKET', ''))
+if m != None:
+    config.add(m.group(1), '_SOCKET', exists_ok=True)
     r = 0
     try:
         stat_info = os.stat(config.get('_SOCKET'))
@@ -70,7 +73,7 @@ if re.match(re_unix, config.get('_SOCKET', '')):
     if r > 0:
         sys.stderr.write('{} is not a socket\n'.format(config.get('_SOCKET')))
         sys.exit(1)
-
+    
     mode = OpMode.UNIX
 
 logg.info('using mode {}'.format(mode.value))
@@ -92,9 +95,31 @@ class TokenIndexLookupAdapter(TokenUniqueSymbolIndex):
         return self.address_of(self.index_address, v, sender_address=sender)
 
 
+class Outputter:
+
+    def __init__(self, mode):
+        self.out = getattr(self, 'do_' + mode.value)
+
+
+    def do(self, hx):
+        self.out(hx)
+
+
+    def do_standard_output(self, hx):
+        sys.stdout.write(hx + '\n')
+
+
+    def do_unix_socket(self, hx):
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect(config.get('_SOCKET'))
+        s.send(hx.encode('utf-8'))
+        s.close()
+
+
 def main():
     signer = rpc.get_signer()
 
+    # TODO: make resolvers pluggable
     token_resolver = DefaultResolver(chain_spec, conn, sender_address=rpc.get_sender_address())
     token_index_lookup = TokenUniqueSymbolIndex(chain_spec, signer=signer, gas_oracle=rpc.get_gas_oracle(), nonce_oracle=rpc.get_nonce_oracle())
     token_resolver.add_lookup(token_index_lookup, config.get('_TOKEN_INDEX'))
@@ -111,13 +136,15 @@ def main():
 
 
     tx_iter = iter(processor)
+    out = Outputter(mode)
     while True:
         tx = None
         try:
             tx_bytes = next(tx_iter)
         except StopIteration:
             break
-        print(tx_bytes.hex()) 
+        tx_hex = tx_bytes.hex()
+        out.do(tx_hex)
 
 
 if __name__ == '__main__':

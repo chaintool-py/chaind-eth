@@ -24,13 +24,13 @@ class DefaultResolver:
 
 
     def lookup(self, k):
+        if k == '' or k == None:
+            return None
         for i, lookup in enumerate(self.lookups):
             address = self.lookup_pointers[i]
             o = lookup.address_of(address, k, sender_address=self.sender_address)
             r = self.rpc.do(o)
             address = lookup.parse_address_of(r)
-            if address == ZERO_ADDRESS:
-                address = None
-            return address
-
+            if address != ZERO_ADDRESS:
+                return address
         raise FileNotFoundError(k)
