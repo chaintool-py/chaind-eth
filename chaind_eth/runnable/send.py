@@ -79,7 +79,7 @@ if m != None:
 logg.info('using mode {}'.format(mode.value))
 
 if config.get('_SOURCE') == None:
-    sys.stderr.write('source data missing')
+    sys.stderr.write('source data missing\n')
     sys.exit(1)
 
 
