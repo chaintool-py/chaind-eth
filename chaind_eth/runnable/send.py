@@ -14,13 +14,16 @@ from chaind import Environment
 from chainlib.eth.gas import price
 from chainlib.chain import ChainSpec
 from hexathon import strip_0x
-from eth_token_index.index import TokenUniqueSymbolIndex
 
 # local imports
 from chaind_eth.cli.process import Processor
 from chaind_eth.cli.csv import CSVProcessor
 from chaind.error import TxSourceError
-from chaind_eth.cli.resolver import DefaultResolver
+from chaind_eth.cli.resolver import (
+        DefaultResolver,
+        LookNoop,
+        TokenIndexLookup,
+        )
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
@@ -83,18 +86,6 @@ if config.get('_SOURCE') == None:
     sys.exit(1)
 
 
-class TokenIndexLookupAdapter(TokenUniqueSymbolIndex):
-
-    def __init__(self, sender, address, chain_spec, signer=None, gas_oracle=None, nonce_oracle=None):
-        super(TokenIndexLookupAdapter, self).__init__(chain_spec, signer=signer, gas_oracle=gas_oracle, nonce_oracle=nonce_oracle)
-        self.index_address = address
-        self.sender = sender
-
-
-    def resolve(self, v):
-        return self.address_of(self.index_address, v, sender_address=sender)
-
-
 class Outputter:
 
     def __init__(self, mode):
@@ -123,10 +114,16 @@ class Outputter:
 def main():
     signer = rpc.get_signer()
 
+
     # TODO: make resolvers pluggable
     token_resolver = DefaultResolver(chain_spec, conn, sender_address=rpc.get_sender_address())
-    token_index_lookup = TokenUniqueSymbolIndex(chain_spec, signer=signer, gas_oracle=rpc.get_gas_oracle(), nonce_oracle=rpc.get_nonce_oracle())
-    token_resolver.add_lookup(token_index_lookup, config.get('_TOKEN_INDEX'))
+
+    noop_lookup = LookNoop()
+    token_resolver.add_lookup(noop_lookup, 'noop')
+  
+    if config.get('_TOKEN_INDEX') != None:
+        token_index_lookup = TokenIndexLookup(chain_spec, signer, rpc.get_gas_oracle(), rpc.get_nonce_oracle(), config.get('_TOKEN_INDEX'))
+        token_resolver.add_lookup(token_index_lookup, reverse=config.get('_TOKEN_INDEX'))
     
     processor = Processor(wallet.get_signer_address(), wallet.get_signer(), config.get('_SOURCE'), chain_spec, rpc.get_gas_oracle(), rpc.get_nonce_oracle(), resolver=token_resolver)
     processor.add_processor(CSVProcessor())

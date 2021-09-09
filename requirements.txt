@@ -1,4 +1,4 @@
 chaind<=0.0.3,>=0.0.3a5
 hexathon~=0.0.1a8
-chainlib-eth<=0.1.0,>=0.0.9a9
-eth-address-index<=0.3.0,>=0.2.3a4
+chainlib-eth<=0.1.0,>=0.0.9a10
+eth-address-index<=0.3.0,>=0.2.3a5

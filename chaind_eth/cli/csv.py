@@ -16,10 +16,10 @@ class CSVProcessor:
 
         import csv # only import if needed
         fr = csv.reader(f)
-        f.close()
 
         for r in fr:
             contents.append(r)
+        f.close()
         l = len(contents)
         logg.info('successfully parsed source as csv, found {} records'.format(l))
         return contents

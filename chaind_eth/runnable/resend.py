@@ -33,14 +33,12 @@ config_dir = os.path.join(script_dir, '..', 'data', 'config')
 arg_flags = chainlib.eth.cli.argflag_std_write
 argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
 argparser.add_argument('--socket', dest='socket', type=str, help='Socket to send transactions to')
-argparser.add_argument('--token-index', dest='token_index', type=str, help='Token resolver index')
 argparser.add_positional('source', required=False, type=str, help='Transaction source file')
 args = argparser.parse_args()
 
 extra_args = {
         'socket': None,
         'source': None,
-        'token_index': None,
         }
 
 env = Environment(domain='eth', env=os.environ)
