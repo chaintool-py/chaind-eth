@@ -116,18 +116,22 @@ eth-gas --raw -a $recipient 4096 > tx3.txt
 ### send test transactions to queue
 
 ```
-cat tx1.txt | socat UNIX-CLIENT=/run/user/$UID/chaind/eth/testsession/chaind.sock -
-cat tx2.txt | socat UNIX-CLIENT=/run/user/$UID/chaind/eth/testsession/chaind.sock -
-cat tx3.txt | socat UNIX-CLIENT=/run/user/$UID/chaind/eth/testsession/chaind.sock -
+cat tx1.txt | socat UNIX-CLIENT:/run/user/$UID/chaind/eth/testsession/chaind.sock -
+cat tx2.txt | socat UNIX-CLIENT:/run/user/$UID/chaind/eth/testsession/chaind.sock -
+cat tx3.txt | socat UNIX-CLIENT:/run/user/$UID/chaind/eth/testsession/chaind.sock -
 ```
 
 ### check status of transactions
 
 
-`chainqueue-list` outputs details about transactions in the queue:
+`chainqueue-list` outputs details about transactions in the queue.
+
+Provided the initial database migration was executed as described above, the execution would look as follows:
 
 ```
 export DATABASE_ENGINE=sqlite
+export DATABASE_NAME=$HOME/.local/share/chaind/eth/chaind.sqlite 
+export CHAIN_SPEC=<chain_spec_of_provider>
 sender=$(eth-keyfile -d $WALLET_KEY_FILE)
 chainqueue-list $sender
 ```
@@ -141,6 +145,8 @@ chainqueue-list --summary $sender
 The `chaind-list` tool can be used to list by session id. Following the above examples:
 
 ```
+export DATABASE_ENGINE=sqlite
+export CHAIN_SPEC=<chain_spec_of_provider>
 chaind-list testsession
 ```
 
@@ -157,8 +163,8 @@ Extending the previous examples, this will output the original signed transactio
 
 ```
 eth-gas --raw -a $recipient 1024 > tx1.txt
-cat tx1.txt | socat UNIX-CLIENT=/run/user/$UID/chaind/eth/testsession/chaind.sock - | cut -b 4- > hash1.txt 
-cat hash1.tx | socat UNIX-CLIENT=/run/user/$UID/chaind/eth/testsession/chaind.sock - | cut -b 4- > tx1_recovered.txt
+cat tx1.txt | socat UNIX-CLIENT:/run/user/$UID/chaind/eth/testsession/chaind.sock - | cut -b 4- > hash1.txt 
+cat hash1.tx | socat UNIX-CLIENT:/run/user/$UID/chaind/eth/testsession/chaind.sock - | cut -b 4- > tx1_recovered.txt
 diff tx1_recovered.txt tx1.txt
 # should output 0
 echo $?
