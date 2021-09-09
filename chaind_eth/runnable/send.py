@@ -118,7 +118,7 @@ def main():
     # TODO: make resolvers pluggable
     token_resolver = DefaultResolver(chain_spec, conn, sender_address=rpc.get_sender_address())
 
-    noop_lookup = LookNoop()
+    noop_lookup = LookNoop(check=not config.true('_UNSAFE'))
     token_resolver.add_lookup(noop_lookup, 'noop')
   
     if config.get('_TOKEN_INDEX') != None:

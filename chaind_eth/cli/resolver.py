@@ -12,12 +12,21 @@ logg = logging.getLogger(__name__)
 
 class LookNoop:
 
+    def __init__(self, check=True):
+        self.check = check
+
+
     def get(self, k, rpc=None):
-        try:
-            if not is_checksum_address(k):
+        if not self.check:
+            address_bytes = bytes.fromhex(strip_0x(k))
+            if len(address_bytes) != 20:
+                raise ValueError('{} is not a valid address'.format(k))
+        else:
+            try:
+                if not is_checksum_address(k):
+                    raise ValueError('not valid checksum address {}'.format(k))
+            except ValueError:
                 raise ValueError('not valid checksum address {}'.format(k))
-        except ValueError:
-            raise ValueError('not valid checksum address {}'.format(k))
         return strip_0x(k)
 
 
