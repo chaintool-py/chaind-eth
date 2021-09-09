@@ -77,7 +77,7 @@ In terminal window B
 cd <working directory>
 . .venv/bin/activate
 export DATABASE_ENGINE=sqlite
-export RPC_HTTP_PROVIDER=<your_provider>
+export RPC_PROVIDER=<your_provider>
 export CHAIN_SPEC=<chain_spec_of_provider>
 chaind-eth-server --session-id testsession
 ```
@@ -88,7 +88,7 @@ In terminal window C
 cd <working directory>
 . .venv/bin/activate
 export DATABASE_ENGINE=sqlite
-export RPC_HTTP_PROVIDER=<your_provider>
+export RPC_PROVIDER=<your_provider>
 export CHAIN_SPEC=<chain_spec_of_provider>
 chaind-eth-syncer
 ```
