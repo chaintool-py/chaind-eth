@@ -22,10 +22,10 @@ class TestBase(EthTesterCase):
 
     def setUp(self):
         super(TestBase, self).setUp()
-        self.db_chainsyncer = ChainSyncerDb()
+        self.db_chainsyncer = ChainSyncerDb(debug=bool(os.environ.get('DATABASE_DEBUG')))
         self.session_chainsyncer = self.db_chainsyncer.bind_session()
 
-        self.db_chainqueue = ChainQueueDb()
+        self.db_chainqueue = ChainQueueDb(debug=bool(os.environ.get('DATABASE_DEBUG')))
         self.session_chainqueue = self.db_chainqueue.bind_session()
 
         self.interface = EthChainInterface()
@@ -40,7 +40,8 @@ class TestBase(EthTesterCase):
 
 class TestSQLBase(TestBase):
 
-    example_tx = bytes.fromhex('f8650d8405f5e10082520894ee38d3a40e177608d41978778206831f60dd0fa88204008077a040adee2ad0a0e566bced4b76a8899549e86719eb8866b87674b6fdc88479c201a030b3ca061bb330f4d78bc9cb8144c8e570339496f56b7809387de2ffeaa585d5')
+    example_tx_hex = 'f8650d8405f5e10082520894ee38d3a40e177608d41978778206831f60dd0fa88204008077a040adee2ad0a0e566bced4b76a8899549e86719eb8866b87674b6fdc88479c201a030b3ca061bb330f4d78bc9cb8144c8e570339496f56b7809387de2ffeaa585d5'
+    example_tx = bytes.fromhex(example_tx_hex)
     example_tx_sender = add_0x(to_checksum_address('eb3907ecad74a0013c259d5874ae7f22dcbcc95c'))
     dsn = dsn_from_config(db_config)
 

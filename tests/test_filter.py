@@ -76,7 +76,8 @@ class TestFilter(TestBase):
         adapter = EthAdapter(backend)
 
         tx_raw_rlp_signed_bytes = bytes.fromhex(strip_0x(tx_raw_rlp_signed))
-        adapter.add(tx_raw_rlp_signed_bytes, self.chain_spec, session=self.session_chainqueue)
+        #adapter.add(tx_raw_rlp_signed_bytes, self.chain_spec, session=self.session_chainqueue)
+        adapter.add(tx_raw_rlp_signed, self.chain_spec, session=self.session_chainqueue)
  
         set_ready(self.chain_spec, tx_hash, session=self.session_chainqueue)
         set_reserved(self.chain_spec, tx_hash, session=self.session_chainqueue)

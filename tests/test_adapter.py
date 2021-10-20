@@ -19,7 +19,7 @@ class TestAdapter(TestSQLBase):
 
 
     def test_eth_adapter_add(self):
-        self.adapter.add(self.example_tx, self.chain_spec, session=self.session_chainqueue)
+        self.adapter.add(self.example_tx_hex, self.chain_spec, session=self.session_chainqueue)
             
 
 if __name__ == '__main__':

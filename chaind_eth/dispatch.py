@@ -8,6 +8,7 @@ from chainlib.error import JSONRPCException
 from chainqueue.enum import StatusBits
 from chainqueue.sql.query import count_tx
 from hexathon import strip_0x
+from chainqueue.encode import TxNormalizer
 
 #logg = logging.getLogger(__name__)
 logg = logging.getLogger()
@@ -23,6 +24,7 @@ class Dispatcher:
         self.chain_spec = chain_spec
         self.adapter = adapter
         self.limit = limit
+        self.tx_normalizer = TxNormalizer()
 
 
     def __init_count(self, address, session):
@@ -36,10 +38,12 @@ class Dispatcher:
 
 
     def get_count(self, address, session):
+        address = self.tx_normalizer.wallet_address(address)
         return self.__init_count(address, session)
 
     
     def inc_count(self, address, session):
+        address = self.tx_normalizer.wallet_address(address)
         self.__init_count(address, session)
         self.address_counts[address] -= 1
             

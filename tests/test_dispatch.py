@@ -37,14 +37,15 @@ class TestDispatcher(TestSQLBase):
 
         tx_raw_rlp_signed_bytes = bytes.fromhex(strip_0x(tx_raw_rlp_signed))
         dispatcher = Dispatcher(self.chain_spec, self.adapter, 1)
-        self.adapter.add(tx_raw_rlp_signed_bytes, self.chain_spec, session=self.session_chainqueue)
-        assert dispatcher.get_count(self.example_tx_sender, self.session_chainqueue) == 1
+        self.adapter.add(tx_raw_rlp_signed, self.chain_spec, session=self.session_chainqueue)
+        #self.assertEqual(dispatcher.get_count(self.example_tx_sender, self.session_chainqueue), 1)
+        self.assertEqual(dispatcher.get_count(self.accounts[0], self.session_chainqueue), 1)
+
         dispatcher.process(self.rpc, self.session_chainqueue)
         tx_obj = unpack(tx_raw_rlp_signed_bytes, self.chain_spec)
         o = get_tx(self.chain_spec, tx_obj['hash'], session=self.session_chainqueue)
-        assert o['status'] & StatusBits.IN_NETWORK > 0
-        
-        assert dispatcher.get_count(self.accounts[0], self.session_chainqueue) == 0
+        self.assertGreater(o['status'] & StatusBits.IN_NETWORK, 0)
+        self.assertEqual(dispatcher.get_count(self.accounts[0], self.session_chainqueue), 0)
 
 
 if __name__ == '__main__':
