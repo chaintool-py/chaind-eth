@@ -39,3 +39,4 @@ class EthCacheTx(CacheTx):
         self.recipient = eth_normalizer.address(tx['to'])
         self.nonce = eth_normalizer.value(tx['nonce'])
         self.value = eth_normalizer.value(tx['value'])
+        self.src = signed_tx
