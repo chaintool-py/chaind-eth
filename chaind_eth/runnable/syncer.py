@@ -75,7 +75,7 @@ chain_spec = ChainSpec.from_chain_str(config.get('CHAIN_SPEC'))
 dsn = dsn_from_config(config)
 logg.debug('dns {}'.format(dsn))
 SQLBackend.setup(dsn, debug=config.true('DATABASE_DEBUG'))
-rpc = EthHTTPConnection(url=config.get('RPC_HTTP_PROVIDER'), chain_spec=chain_spec)
+rpc = EthHTTPConnection(url=config.get('RPC_PROVIDER'), chain_spec=chain_spec)
 
 def register_filter_tags(filters, session):
     for f in filters:

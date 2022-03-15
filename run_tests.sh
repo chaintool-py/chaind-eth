@@ -3,7 +3,7 @@
 set -e
 set -x
 set -a
-export PYTHONPATH=${PYTHONPATH:.}
+export PYTHONPATH=${PYTHONPATH:-.}
 for f in `ls tests/*.py`; do
 	python $f
 done

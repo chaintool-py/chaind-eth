@@ -1,4 +1,4 @@
-chaind<=0.0.3,>=0.0.3a6
-hexathon~=0.0.1a8
-chainlib-eth<=0.1.0,>=0.0.10a10
-eth-token-index<=0.3.0,>=0.2.4a1
+#chaind~=0.1.0
+hexathon~=0.1.5
+chainlib-eth>=0.1.0b3,<=0.1.0
+#eth-token-index~=0.2.4
