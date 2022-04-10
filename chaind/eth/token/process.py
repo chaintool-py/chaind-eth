@@ -11,7 +11,6 @@ from hexathon import (
         strip_0x,
         )
 from funga.eth.transaction import EIP155Transaction
-#from eth_erc20 import ERC20
 
 logg = logging.getLogger(__name__)
 
