@@ -6,19 +6,21 @@ import datetime
 import enum
 import re
 import stat
+import socket
 
 # external imports
 import chainlib.eth.cli
-from chaind import Environment
+from chaind.setup import Environment
 from chainlib.eth.gas import price
 from chainlib.chain import ChainSpec
 from hexathon import strip_0x
-from eth_token_index.index import TokenUniqueSymbolIndex
 
 # local imports
-from chaind_eth.cli.retry import Retrier
 from chaind.error import TxSourceError
-from chaind_eth.cli.output import (
+from chaind.eth.token.process import Processor
+from chaind.eth.token.gas import GasTokenResolver
+from chaind.eth.cli.csv import CSVProcessor
+from chaind.eth.cli.output import (
         Outputter,
         OpMode,
         )
@@ -33,6 +35,7 @@ config_dir = os.path.join(script_dir, '..', 'data', 'config')
 arg_flags = chainlib.eth.cli.argflag_std_write
 argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
 argparser.add_argument('--socket', dest='socket', type=str, help='Socket to send transactions to')
+argparser.add_argument('--token-module', dest='token_module', type=str, help='Python module path to resolve tokens from identifiers')
 argparser.add_positional('source', required=False, type=str, help='Transaction source file')
 args = argparser.parse_args()
 
@@ -40,9 +43,9 @@ extra_args = {
         'socket': None,
         'source': None,
         }
-
 env = Environment(domain='eth', env=os.environ)
 config = chainlib.eth.cli.Config.from_args(args, arg_flags, extra_args=extra_args, base_config_dir=config_dir)
+config.add(args.token_module, 'TOKEN_MODULE', True)
 
 wallet = chainlib.eth.cli.Wallet()
 wallet.from_config(config)
@@ -52,8 +55,8 @@ conn = rpc.connect_by_config(config)
 
 chain_spec = ChainSpec.from_chain_str(config.get('CHAIN_SPEC'))
 
-
 mode = OpMode.STDOUT
+
 re_unix = r'^ipc://(/.+)'
 m = re.match(re_unix, config.get('_SOCKET', ''))
 if m != None:
@@ -80,10 +83,18 @@ if config.get('_SOURCE') == None:
 
 
 def main():
-    signer = rpc.get_signer()
-
-    # TODO: make resolvers pluggable
-    processor = Retrier(wallet.get_signer_address(), wallet.get_signer(), config.get('_SOURCE'), chain_spec, rpc.get_gas_oracle())
+    token_resolver = None
+    if config.get('TOKEN_MODULE') != None:
+        import importlib
+        m = importlib.import_module(config.get('TOKEN_MODULE'))
+        m = m.TokenResolver
+    else:
+        from chaind.eth.token.gas import GasTokenResolver
+        m = GasTokenResolver
+    token_resolver = m(chain_spec, rpc.get_sender_address(), rpc.get_signer(), rpc.get_gas_oracle(), rpc.get_nonce_oracle())
+    
+    processor = Processor(token_resolver, config.get('_SOURCE'))
+    processor.add_processor(CSVProcessor())
 
     sends = None
     try:
@@ -101,7 +112,7 @@ def main():
         except StopIteration:
             break
         tx_hex = tx_bytes.hex()
-        print(out.do(tx_hex, socket=config.get('_SOCKET')))
+        print(out.do(tx_hex))
 
 
 if __name__ == '__main__':

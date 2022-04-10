@@ -32,5 +32,6 @@ setup(
         extras_require={
             'postgres': postgres_requirements,
             'sqlite': sqlite_requirements,
+            'erc20': erc20_requirements,
             }
     )
