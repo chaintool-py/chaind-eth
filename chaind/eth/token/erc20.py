@@ -13,7 +13,7 @@ class TokenResolver(BaseTokenResolver):
         self.factory = ERC20(self.chain_spec, signer=self.signer, gas_oracle=self.gas_oracle, nonce_oracle=self.nonce_oracle)
 
 
-    def create(self, recipient, gas_value, data=None, token_value=0, executable_address=None, passphrase=None):
+    def create(self, conn, recipient, gas_value, data=None, token_value=0, executable_address=None, passphrase=None):
 
         if executable_address == None:
             raise ValueError('executable address required')

@@ -21,13 +21,15 @@ class Processor:
         self.resolver = resolver
         self.source = source
         self.processor = []
+        self.conn = None
         
 
     def add_processor(self, processor):
         self.processor.append(processor)
 
 
-    def load(self, process=True):
+    def load(self, conn, process=True):
+        self.conn = conn
         for processor in self.processor:
             self.content = processor.load(self.source)
         if self.content != None:
@@ -82,7 +84,7 @@ class Processor:
         logg.debug('gasvalue {}'.format(gas_value))
         data = '0x'
 
-        tx = self.resolver.create(r[0], gas_value, data=data, token_value=value, executable_address=r[2])
+        tx = self.resolver.create(self.conn, r[0], gas_value, data=data, token_value=value, executable_address=r[2])
         v =  self.resolver.sign(tx)
 
         self.cursor += 1

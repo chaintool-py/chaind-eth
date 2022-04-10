@@ -98,7 +98,7 @@ def main():
 
     sends = None
     try:
-        sends = processor.load()
+        sends = processor.load(conn)
     except TxSourceError as e:
         sys.stderr.write('processing error: {}. processors: {}\n'.format(str(e), str(processor)))
         sys.exit(1)
