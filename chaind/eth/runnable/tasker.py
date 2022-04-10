@@ -51,7 +51,6 @@ extra_args = {
     'session_id': 'SESSION_ID', 
     'dispatch_delay': 'SESSION_DISPATCH_DELAY',
         }
-#config = chainlib.eth.cli.Config.from_args(args, arg_flags, default_config_dir=config_dir, extend_base_config_dir=config_dir)
 config = chainlib.eth.cli.Config.from_args(args, arg_flags, extra_args=extra_args, base_config_dir=config_dir)
 
 logg.debug('session id {} {}'.format(type(config.get('SESSION_ID')), config.get('SESSION_ID')))
@@ -65,11 +64,6 @@ if not config.get('SESSION_SOCKET_PATH'):
     socket_path = os.path.join(config.get('SESSION_RUNTIME_DIR'), config.get('SESSION_ID'), 'chaind.sock')
     config.add(socket_path, 'SESSION_SOCKET_PATH', True)
 
-if config.get('DATABASE_ENGINE') == 'sqlite':
-    #config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME') + '.sqlite'), 'DATABASE_NAME', exists_ok=True)
-    config.add(os.path.join(config.get('SESSION_DATA_DIR'), config.get('DATABASE_NAME') + '.sqlite'), 'DATABASE_NAME', exists_ok=True)
-    
-config.censor('PASSWORD', 'DATABASE')
 logg.debug('config loaded:\n{}'.format(config))
 
 def process_outgoing(chain_spec, adapter, rpc, limit=100):
@@ -120,7 +114,12 @@ def main():
             ctrl.process(conn)
             continue
 
-        tx_hash = queue_adapter.put(r.hex())
+        try:
+            tx_hash = queue_adapter.put(r.hex())
+        except Exception as e:
+            logg.error('adapter rejected input {}: "{}"'.format(r.hex(), e))
+            continue
+
         queue_adapter.enqueue(tx_hash)
 
 
