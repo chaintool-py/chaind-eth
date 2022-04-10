@@ -105,6 +105,7 @@ def main():
     fltr = StateFilter(queue_adapter)
     sync_store = SyncFsStore(config.get('SESSION_RUNTIME_DIR'), session_id=config.get('SESSION_ID'))
     sync_store.register(fltr)
+    sync_store.start()
 
     chain_interface = EthChainInterface()
     drv = ChainInterfaceDriver(sync_store, chain_interface, offset=session_block_offset, target=block_limit)

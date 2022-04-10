@@ -116,7 +116,9 @@ def main():
 
         try:
             tx_hash = queue_adapter.put(r.hex())
-        except Exception as e:
+        except DuplicateTxError as e:
+            logg.error('tx already exists as {}'.format(e))
+        except ValueError as e:
             logg.error('adapter rejected input {}: "{}"'.format(r.hex(), e))
             continue
 
