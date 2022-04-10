@@ -28,8 +28,10 @@ class BaseTokenResolver:
 
 
     def get_values(self, gas_value, value, executable_address=None):
+        nonce = self.nonce_oracle.next_nonce()
+
         if executable_address == None:
-            return (value, 0)
+            return (value, 0, nonce)
 
         try:
             value = int(value)
@@ -40,8 +42,6 @@ class BaseTokenResolver:
             gas_value = int(gas_value)
         except ValueError:
             gas_value = int(strip_0x(gas_value), 16)
-
-        nonce = self.nonce_oracle.next_nonce()
 
         return (gas_value, value, nonce,)
 

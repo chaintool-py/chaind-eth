@@ -84,7 +84,13 @@ class Processor:
         logg.debug('gasvalue {}'.format(gas_value))
         data = '0x'
 
-        tx = self.resolver.create(self.conn, r[0], gas_value, data=data, token_value=value, executable_address=r[2])
+        executable_address = None
+        try:
+            executable_address = r[2]
+        except IndexError:
+            pass
+
+        tx = self.resolver.create(self.conn, r[0], gas_value, data=data, token_value=value, executable_address=executable_address)
         v =  self.resolver.sign(tx)
 
         self.cursor += 1
