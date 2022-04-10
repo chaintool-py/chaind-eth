@@ -99,9 +99,10 @@ signal.signal(signal.SIGTERM, ctrl.shutdown)
 
 def main():
     while True:
-        r = None
+        v = None
+        client_socket = None
         try:
-            r = ctrl.get()
+            (client_socket, v) = ctrl.get()
         except ClientGoneError:
             break
         except ClientBlockError:
@@ -111,21 +112,26 @@ def main():
         except NothingToDoError:
             pass
 
-        if r == None:
+        if v == None:
             ctrl.process(conn)
             continue
 
+        result_data = None
+        r = 0 # no error
         try:
-            tx_hash = queue_adapter.put(r.hex())
+            result_data = queue_adapter.put(v.hex())
         except DuplicateTxError as e:
-            logg.error('tx already exists as {}'.format(e))
-            continue
+            logg.error('tx already exists: {}'.format(e))
+            r = 1
         except ValueError as e:
-            logg.error('adapter rejected input {}: "{}"'.format(r.hex(), e))
+            logg.error('adapter rejected input {}: "{}"'.format(v.hex(), e))
             continue
 
-        queue_adapter.enqueue(tx_hash)
+        if r == 0:
+            queue_adapter.enqueue(result_data)
 
+        ctrl.respond_put(client_socket, r, extra_data=result_data)
+        
 
 if __name__ == '__main__':
     main()

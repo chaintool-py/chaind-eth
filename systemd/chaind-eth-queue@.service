@@ -6,5 +6,5 @@ After=chaind-eth-sync@.service
 [Service]
 Environment="SESSION_ID=%i"
 Environment="SESSION_RUNTIME_DIR=/run/user/%U/chaind/eth"
-ExecStart=%h/.local/bin/chaind-eth-server -v --session-id %i
+ExecStart=%h/.local/bin/chaind-eth-tasker -v --session-id %i
 Restart=on-failure
