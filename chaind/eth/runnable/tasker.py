@@ -17,6 +17,7 @@ from chainqueue import (
         Store,
         Status,
         )
+from chainqueue.error import DuplicateTxError
 from chainqueue.store.fs import (
         IndexStore,
         CounterStore,
@@ -118,6 +119,7 @@ def main():
             tx_hash = queue_adapter.put(r.hex())
         except DuplicateTxError as e:
             logg.error('tx already exists as {}'.format(e))
+            continue
         except ValueError as e:
             logg.error('adapter rejected input {}: "{}"'.format(r.hex(), e))
             continue
