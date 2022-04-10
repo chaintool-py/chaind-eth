@@ -30,8 +30,8 @@ setup(
         install_requires=requirements,
         tests_require=test_requirements,
         extras_require={
-            'postgres': postgres_requirements,
-            'sqlite': sqlite_requirements,
+            #'postgres': postgres_requirements,
+            #'sqlite': sqlite_requirements,
             'erc20': erc20_requirements,
             }
     )
