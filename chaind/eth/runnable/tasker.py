@@ -5,6 +5,7 @@ import signal
 
 # external imports
 import chainlib.eth.cli
+import chaind.cli
 from chaind.session import SessionController
 from chaind.setup import Environment
 from chaind.error import (
@@ -30,6 +31,7 @@ from chaind.adapters.fs import ChaindFsAdapter
 # local imports
 from chaind.eth.dispatch import EthDispatcher
 from chaind.eth.cache import EthCacheTx
+from chaind.eth.settings import ChaindEthSettings
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
@@ -41,31 +43,28 @@ env = Environment(domain='eth', env=os.environ)
 
 arg_flags = chainlib.eth.cli.argflag_std_read
 argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
-argparser.add_argument('--data-dir', type=str, help='data directory')
-argparser.add_argument('--runtime-dir', type=str, help='runtime directory')
-argparser.add_argument('--session-id', dest='session_id', type=str, help='session identifier')
-argparser.add_argument('--dispatch-delay', dest='dispatch_delay', type=float, help='socket timeout before processing queue')
-args = argparser.parse_args()
-extra_args = {
-    'runtime_dir': 'SESSION_RUNTIME_DIR',
-    'data_dir': 'SESSION_DATA_DIR',
-    'session_id': 'SESSION_ID', 
-    'dispatch_delay': 'SESSION_DISPATCH_DELAY',
-        }
-config = chainlib.eth.cli.Config.from_args(args, arg_flags, extra_args=extra_args, base_config_dir=config_dir)
 
-logg.debug('session id {} {}'.format(type(config.get('SESSION_ID')), config.get('SESSION_ID')))
-if config.get('SESSION_ID') == None:
-    config.add(env.session, 'SESSION_ID', exists_ok=True)
-if config.get('SESSION_RUNTIME_DIR') == None:
-    config.add(env.runtime_dir, 'SESSION_RUNTIME_DIR', exists_ok=True)
-if config.get('SESSION_DATA_DIR') == None:
-    config.add(env.data_dir, 'SESSION_DATA_DIR', exists_ok=True)
-if not config.get('SESSION_SOCKET_PATH'):
-    socket_path = os.path.join(config.get('SESSION_RUNTIME_DIR'), config.get('SESSION_ID'), 'chaind.sock')
-    config.add(socket_path, 'SESSION_SOCKET_PATH', True)
+local_arg_flags = chaind.cli.argflag_local_base | chaind.cli.ChaindFlag.DISPATCH | chaind.cli.ChaindFlag.SOCKET
+chaind.cli.process_flags(argparser, local_arg_flags)
+
+args = argparser.parse_args()
+
+base_config_dir = [chaind.cli.config_dir]
+config = chainlib.cli.Config.from_args(args, arg_flags, base_config_dir=base_config_dir)
+config = chaind.cli.process_config(config, args, local_arg_flags)
+config.add('eth', 'CHAIND_ENGINE', False)
 
 logg.debug('config loaded:\n{}'.format(config))
+
+settings = ChaindEthSettings()
+settings.process(config)
+
+logg.debug('settings:\n{}'.format(settings))
+
+import sys
+sys.exit(0)
+
+
 
 def process_outgoing(chain_spec, adapter, rpc, limit=100):
     upcoming = adapter.upcoming()
