@@ -56,14 +56,10 @@ config.add('eth', 'CHAIND_ENGINE', False)
 
 logg.debug('config loaded:\n{}'.format(config))
 
-settings = ChaindEthSettings()
+settings = ChaindEthSettings(include_queue=True)
 settings.process(config)
 
 logg.debug('settings:\n{}'.format(settings))
-
-import sys
-sys.exit(0)
-
 
 
 def process_outgoing(chain_spec, adapter, rpc, limit=100):
@@ -85,18 +81,18 @@ tx_normalizer = TxHexNormalizer().tx_hash
 token_cache_store = CacheTokenTx(chain_spec, normalizer=tx_normalizer)
 dispatcher = EthDispatcher(conn)
 queue_adapter = ChaindFsAdapter(
-        chain_spec,
-        config.get('SESSION_DATA_DIR'),
+        settings.get('CHAIN_SPEC'),
+        settings.get('SESSION_DATA_DIR'),
         EthCacheTx,
         dispatcher,
         )
 
-ctrl = SessionController(config, queue_adapter, process_outgoing)
+ctrl = SessionController(settings, queue_adapter, process_outgoing)
 signal.signal(signal.SIGINT, ctrl.shutdown)
 signal.signal(signal.SIGTERM, ctrl.shutdown)
 
-logg.info('session id is ' + config.get('SESSION_ID'))
-logg.info('session socket path is ' + config.get('SESSION_SOCKET_PATH'))
+logg.info('session id is ' + settings.get('SESSION_ID'))
+logg.info('session socket path is ' + settings.get('SESSION_SOCKET_PATH'))
 
 def main():
     while True:
