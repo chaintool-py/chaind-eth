@@ -4,5 +4,5 @@ Description=Ethereum chaind syncer
 [Service]
 Environment="SESSION_ID=%i"
 Environment="SESSION_RUNTIME_DIR=/run/user/%U/chaind/eth"
-ExecStart=%h/.local/bin/chaind-eth-syncer -v --session-id %i --skip-history
+ExecStart=%h/.local/bin/chaind-eth-syncer -v --session-id %i --head
 Restart=on-failure

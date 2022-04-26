@@ -21,6 +21,16 @@ while True:
     test_requirements.append(l.rstrip())
 f.close()
 
+erc20_requirements = []
+f = open('erc20_requirements.txt', 'r')
+while True:
+    l = f.readline()
+    if l == '':
+        break
+    test_requirements.append(l.rstrip())
+f.close()
+
+
 postgres_requirements = [
     'psycopg2==2.8.6',
         ] + requirements

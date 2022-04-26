@@ -1,1 +1,1 @@
-include *requirements.txt LICENSE chaind_eth/data/config/* chaind_eth/data/config/syncer/*
+include *requirements.txt LICENSE chaind/eth/data/config/* chaind/eth/data/config/syncer/*
