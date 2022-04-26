@@ -1,7 +1,7 @@
 [Unit]
 Description=Chainqueue transaction dispatch interface
-Requires=chaind-eth-sync@.service
-After=chaind-eth-sync@.service
+#Requires=chaind-eth-sync@.service
+#After=chaind-eth-sync@.service
 
 [Service]
 Environment="SESSION_ID=%i"

@@ -82,6 +82,20 @@ if config.get('_SOURCE') == None:
     sys.exit(1)
 
 
+class SocketSender:
+
+    def __init__(self, config):
+        self.path = config.get('_SOCKET')
+
+    def send(self, tx):
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect(self.path)
+        s.sendall(tx.encode('utf-8'))
+        r = s.recv(68)
+        s.close()
+        return r
+
+
 def main():
     token_resolver = None
     if config.get('TOKEN_MODULE') != None:
@@ -103,6 +117,11 @@ def main():
         sys.stderr.write('processing error: {}. processors: {}\n'.format(str(e), str(processor)))
         sys.exit(1)
 
+    sender = None
+    if config.get('_RPC_SEND'):
+        if config.get('_SOCKET') != None:
+            sender = SocketSender(config)
+
     tx_iter = iter(processor)
     out = Outputter(mode)
     while True:
@@ -112,6 +131,9 @@ def main():
         except StopIteration:
             break
         tx_hex = tx_bytes.hex()
+        if sender != None:
+            r = sender.send(tx_hex)
+            logg.info('sent {} result {}'.format(tx_hex, r))
         print(out.do(tx_hex))
 
 

@@ -96,6 +96,8 @@ ctrl = SessionController(config, queue_adapter, process_outgoing)
 signal.signal(signal.SIGINT, ctrl.shutdown)
 signal.signal(signal.SIGTERM, ctrl.shutdown)
 
+logg.info('session id is ' + config.get('SESSION_ID'))
+logg.info('session socket path is ' + config.get('SESSION_SOCKET_PATH'))
 
 def main():
     while True:
