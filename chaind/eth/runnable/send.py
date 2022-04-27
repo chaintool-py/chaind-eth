@@ -34,7 +34,7 @@ arg_flags = chainlib.eth.cli.argflag_std_write
 argparser = chainlib.eth.cli.ArgumentParser(arg_flags, arg_long={'-s': '--send-rpc'})
 argparser.add_positional('source', required=False, type=str, help='Transaction source file')
 
-local_arg_flags = chaind.cli.argflag_local_socket_client
+local_arg_flags = chaind.cli.argflag_local_socket_client | chaind.cli.ChaindFlag.TOKEN
 chaind.cli.process_flags(argparser, local_arg_flags)
 
 args = argparser.parse_args()
@@ -105,9 +105,9 @@ class SocketSender:
 
 def main():
     token_resolver = None
-    if config.get('TOKEN_MODULE') != None:
+    if settings.get('TOKEN_MODULE') != None:
         import importlib
-        m = importlib.import_module(config.get('TOKEN_MODULE'))
+        m = importlib.import_module(settings.get('TOKEN_MODULE'))
         m = m.TokenResolver
     else:
         from chaind.eth.token.gas import GasTokenResolver

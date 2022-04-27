@@ -28,7 +28,7 @@ class BaseTokenResolver:
 
 
     def get_values(self, gas_value, value, executable_address=None):
-        nonce = self.nonce_oracle.next_nonce()
+        nonce = self.nonce_oracle.get_nonce()
 
         if executable_address == None:
             return (value, 0, nonce)
