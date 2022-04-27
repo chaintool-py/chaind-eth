@@ -13,7 +13,11 @@ from chainlib.eth.block import block_latest
 from hexathon import strip_0x
 from chainsyncer.store.fs import SyncFsStore
 from chainsyncer.driver.chain_interface import ChainInterfaceDriver
+from chainsyncer.error import SyncDone
+
+# local imports
 from chaind.eth.settings import ChaindEthSettings
+
 
 # local imports
 from chaind.eth.cache import EthCacheTx
@@ -45,6 +49,7 @@ config = chainlib.cli.Config.from_args(args, arg_flags, base_config_dir=base_con
 config = chainsyncer.cli.process_config(config, args, sync_flags)
 config = chaind.cli.process_config(config, args, local_arg_flags)
 config.add('eth', 'CHAIND_ENGINE', False)
+config.add('sync', 'CHAIND_COMPONENT', False)
 logg.debug('config loaded:\n{}'.format(config))
 
 settings = ChaindEthSettings(include_sync=True)
@@ -55,18 +60,21 @@ logg.debug('settings:\n{}'.format(settings))
 def main():
     queue_adapter = ChaindFsAdapter(
         settings.get('CHAIN_SPEC'),
-        settings.get('SESSION_DATA_DIR'),
+        settings.dir_for('queue'),
         EthCacheTx,
         None,
         )
     fltr = StateFilter(queue_adapter)
-    sync_store = SyncFsStore(settings.get('SESSION_RUNTIME_DIR'), session_id=settings.get('SESSION_ID'))
+    sync_store = SyncFsStore(settings.get('SESSION_DATA_DIR'), session_id=settings.get('SESSION_ID'))
     sync_store.register(fltr)
 
     logg.debug('session block offset {}'.format(settings.get('SYNCER_OFFSET')))
 
     drv = ChainInterfaceDriver(sync_store, settings.get('SYNCER_INTERFACE'), offset=settings.get('SYNCER_OFFSET'), target=settings.get('SYNCER_LIMIT'))
-    drv.run(settings.get('RPC'))
+    try:
+        drv.run(settings.get('RPC'))
+    except SyncDone as e:
+        logg.info('sync done: {}'.format(e))
    
 
 if __name__ == '__main__':

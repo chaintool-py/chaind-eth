@@ -10,6 +10,7 @@ import socket
 
 # external imports
 import chainlib.eth.cli
+import chaind.cli
 from chaind.setup import Environment
 from chainlib.eth.gas import price
 from chainlib.chain import ChainSpec
@@ -24,31 +25,37 @@ from chaind.eth.cli.output import (
         Outputter,
         OpMode,
         )
+from chaind.eth.settings import ChaindEthSettings
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
 
-script_dir = os.path.dirname(os.path.realpath(__file__)) 
-config_dir = os.path.join(script_dir, '..', 'data', 'config')
-
-
 arg_flags = chainlib.eth.cli.argflag_std_write
-argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
-argparser.add_argument('--socket', dest='socket', type=str, help='Socket to send transactions to')
-argparser.add_argument('--token-module', dest='token_module', type=str, help='Python module path to resolve tokens from identifiers')
+argparser = chainlib.eth.cli.ArgumentParser(arg_flags, arg_long={'-s': '--send-rpc'})
 argparser.add_positional('source', required=False, type=str, help='Transaction source file')
+
+local_arg_flags = chaind.cli.argflag_local_socket_client
+chaind.cli.process_flags(argparser, local_arg_flags)
+
 args = argparser.parse_args()
 
-extra_args = {
-        'socket': None,
-        'source': None,
-        }
 env = Environment(domain='eth', env=os.environ)
-config = chainlib.eth.cli.Config.from_args(args, arg_flags, extra_args=extra_args, base_config_dir=config_dir)
-config.add(args.token_module, 'TOKEN_MODULE', True)
+
+base_config_dir = [chaind.cli.config_dir]
+config = chainlib.eth.cli.Config.from_args(args, arg_flags, base_config_dir=base_config_dir)
+config = chaind.cli.process_config(config, args, local_arg_flags)
+config.add(args.source, '_SOURCE', False)
+config.add('eth', 'CHAIND_ENGINE', False)
+config.add('queue', 'CHAIND_COMPONENT', False)
+logg.debug('config loaded:\n{}'.format(config))
 
 wallet = chainlib.eth.cli.Wallet()
 wallet.from_config(config)
+
+settings = ChaindEthSettings(include_queue=True)
+settings.process(config)
+
+logg.debug('settings:\n{}'.format(settings))
 
 rpc = chainlib.eth.cli.Rpc(wallet=wallet)
 conn = rpc.connect_by_config(config)
@@ -58,19 +65,19 @@ chain_spec = ChainSpec.from_chain_str(config.get('CHAIN_SPEC'))
 mode = OpMode.STDOUT
 
 re_unix = r'^ipc://(/.+)'
-m = re.match(re_unix, config.get('_SOCKET', ''))
+m = re.match(re_unix, config.get('SESSION_SOCKET_PATH', ''))
 if m != None:
-    config.add(m.group(1), '_SOCKET', exists_ok=True)
+    config.add(m.group(1), 'SESSION_SOCKET_PATH', exists_ok=True)
     r = 0
     try:
-        stat_info = os.stat(config.get('_SOCKET'))
+        stat_info = os.stat(config.get('SESSION_SOCKET_PATH'))
         if not stat.S_ISSOCK(stat_info.st_mode):
             r = 1
     except FileNotFoundError:
         r = 1
 
     if r > 0:
-        sys.stderr.write('{} is not a socket\n'.format(config.get('_SOCKET')))
+        sys.stderr.write('{} is not a socket\n'.format(config.get('SESSION_SOCKET_PATH')))
         sys.exit(1)
     
     mode = OpMode.UNIX
@@ -84,8 +91,8 @@ if config.get('_SOURCE') == None:
 
 class SocketSender:
 
-    def __init__(self, config):
-        self.path = config.get('_SOCKET')
+    def __init__(self, settings):
+        self.path = settings.get('SESSION_SOCKET_PATH')
 
     def send(self, tx):
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -118,9 +125,9 @@ def main():
         sys.exit(1)
 
     sender = None
-    if config.get('_RPC_SEND'):
-        if config.get('_SOCKET') != None:
-            sender = SocketSender(config)
+    if config.true('_SOCKET_SEND'):
+        if settings.get('SESSION_SOCKET_PATH') != None:
+            sender = SocketSender(settings)
 
     tx_iter = iter(processor)
     out = Outputter(mode)

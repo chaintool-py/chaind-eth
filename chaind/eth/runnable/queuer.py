@@ -50,10 +50,10 @@ chaind.cli.process_flags(argparser, local_arg_flags)
 args = argparser.parse_args()
 
 base_config_dir = [chaind.cli.config_dir]
-config = chainlib.cli.Config.from_args(args, arg_flags, base_config_dir=base_config_dir)
+config = chainlib.eth.cli.Config.from_args(args, arg_flags, base_config_dir=base_config_dir)
 config = chaind.cli.process_config(config, args, local_arg_flags)
 config.add('eth', 'CHAIND_ENGINE', False)
-
+config.add('queue', 'CHAIND_COMPONENT', False)
 logg.debug('config loaded:\n{}'.format(config))
 
 settings = ChaindEthSettings(include_queue=True)
