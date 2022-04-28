@@ -6,6 +6,7 @@ import signal
 # external imports
 import chainlib.eth.cli
 import chaind.cli
+import chainqueue.cli
 from chaind.session import SessionController
 from chaind.setup import Environment
 from chaind.error import (
@@ -44,14 +45,18 @@ env = Environment(domain='eth', env=os.environ)
 arg_flags = chainlib.eth.cli.argflag_std_read
 argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
 
+queue_arg_flags = 0
+chainqueue.cli.process_flags(argparser, queue_arg_flags)
+
 local_arg_flags = chaind.cli.argflag_local_base | chaind.cli.ChaindFlag.DISPATCH | chaind.cli.ChaindFlag.SOCKET
 chaind.cli.process_flags(argparser, local_arg_flags)
 
 args = argparser.parse_args()
 
-base_config_dir = [chaind.cli.config_dir]
+base_config_dir = [chainqueue.cli.config_dir, chaind.cli.config_dir]
 config = chainlib.eth.cli.Config.from_args(args, arg_flags, base_config_dir=base_config_dir)
 config = chaind.cli.process_config(config, args, local_arg_flags)
+config = chainqueue.cli.process_config(config, args, queue_arg_flags)
 config.add('eth', 'CHAIND_ENGINE', False)
 config.add('queue', 'CHAIND_COMPONENT', False)
 logg.debug('config loaded:\n{}'.format(config))
@@ -82,7 +87,7 @@ token_cache_store = CacheTokenTx(chain_spec, normalizer=tx_normalizer)
 dispatcher = EthDispatcher(conn)
 queue_adapter = ChaindFsAdapter(
         settings.get('CHAIN_SPEC'),
-        settings.get('SESSION_DATA_DIR'),
+        settings.dir_for('queue'),
         EthCacheTx,
         dispatcher,
         )

@@ -57,6 +57,7 @@ settings.process(config)
 
 logg.debug('settings:\n{}'.format(settings))
 
+
 def main():
     queue_adapter = ChaindFsAdapter(
         settings.get('CHAIN_SPEC'),

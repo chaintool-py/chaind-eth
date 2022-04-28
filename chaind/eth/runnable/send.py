@@ -10,6 +10,7 @@ import socket
 
 # external imports
 import chainlib.eth.cli
+import chainqueue.cli
 import chaind.cli
 from chaind.setup import Environment
 from chainlib.eth.gas import price
@@ -37,12 +38,15 @@ argparser.add_positional('source', required=False, type=str, help='Transaction s
 local_arg_flags = chaind.cli.argflag_local_socket_client | chaind.cli.ChaindFlag.TOKEN
 chaind.cli.process_flags(argparser, local_arg_flags)
 
+chainqueue.cli.process_flags(argparser, 0)
+
 args = argparser.parse_args()
 
 env = Environment(domain='eth', env=os.environ)
 
-base_config_dir = [chaind.cli.config_dir]
+base_config_dir = [chaind.cli.config_dir, chainqueue.cli.config_dir]
 config = chainlib.eth.cli.Config.from_args(args, arg_flags, base_config_dir=base_config_dir)
+config = chainqueue.cli.process_config(config, args, 0)
 config = chaind.cli.process_config(config, args, local_arg_flags)
 config.add(args.source, '_SOURCE', False)
 config.add('eth', 'CHAIND_ENGINE', False)

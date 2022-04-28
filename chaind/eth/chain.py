@@ -2,6 +2,7 @@
 from chainlib.interface import ChainInterface
 from chainlib.eth.block import (
         block_by_number,
+        block_latest,
         Block,
         )
 from chainlib.eth.tx import (
@@ -16,3 +17,4 @@ class EthChainInterface(ChainInterface):
         self._block_from_src = Block.from_src
         self._tx_receipt = receipt
         self._src_normalize = Tx.src_normalize
+        self._block_latest = block_latest
