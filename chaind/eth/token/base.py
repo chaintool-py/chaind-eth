@@ -9,7 +9,7 @@ logg = logging.getLogger(__name__)
 
 class BaseTokenResolver:
 
-    def __init__(self, chain_spec, sender, signer, gas_oracle, nonce_oracle):
+    def __init__(self, chain_spec, sender, signer, gas_oracle, nonce_oracle, advance_nonce=False):
         self.chain_spec = chain_spec
         self.chain_id = chain_spec.chain_id()
         self.signer = signer
@@ -19,6 +19,10 @@ class BaseTokenResolver:
         self.factory = None
         self.gas_limit_start = None
         self.gas_price_start = None
+        if advance_nonce:
+            self.nonce_getter = self.nonce_oracle.next_nonce
+        else:
+            self.nonce_getter = self.nonce_oracle.get_nonce
 
     
     def reset(self):
@@ -28,7 +32,7 @@ class BaseTokenResolver:
 
 
     def get_values(self, gas_value, value, executable_address=None):
-        nonce = self.nonce_oracle.get_nonce()
+        nonce = self.nonce_getter()
 
         if executable_address == None:
             return (value, 0, nonce)

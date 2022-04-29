@@ -9,7 +9,7 @@ from chaind.eth.token import BaseTokenResolver
 class GasTokenResolver(BaseTokenResolver):
 
     def __init__(self, chain_spec, sender, signer, gas_oracle, nonce_oracle):
-        super(GasTokenResolver, self).__init__(chain_spec, sender, signer, gas_oracle, nonce_oracle)
+        super(GasTokenResolver, self).__init__(chain_spec, sender, signer, gas_oracle, nonce_oracle, advance_nonce=True)
         self.factory = Gas(self.chain_spec, signer=self.signer, gas_oracle=self.gas_oracle, nonce_oracle=self.nonce_oracle)
 
 
