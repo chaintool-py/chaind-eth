@@ -8,7 +8,6 @@ import chainsyncer.cli
 import chaind.cli
 from chaind.setup import Environment
 from chaind.filter import StateFilter
-from chaind.adapters.fs import ChaindFsAdapter
 from chainlib.eth.block import block_latest
 from hexathon import strip_0x
 from chainsyncer.store.fs import SyncFsStore
@@ -59,13 +58,7 @@ logg.debug('settings:\n{}'.format(settings))
 
 
 def main():
-    queue_adapter = ChaindFsAdapter(
-        settings.get('CHAIN_SPEC'),
-        settings.dir_for('queue'),
-        EthCacheTx,
-        None,
-        )
-    fltr = StateFilter(queue_adapter)
+    fltr = StateFilter(settings.get('CHAIN_SPEC'), settings.dir_for('queue'), EthCacheTx)
     sync_store = SyncFsStore(settings.get('SESSION_DATA_DIR'), session_id=settings.get('SESSION_ID'))
     sync_store.register(fltr)
 

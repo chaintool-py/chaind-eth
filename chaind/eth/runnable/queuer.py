@@ -67,10 +67,26 @@ settings.process(config)
 logg.debug('settings:\n{}'.format(settings))
 
 
-def process_outgoing(chain_spec, adapter, rpc, limit=100):
-    upcoming = adapter.upcoming()
-    logg.info('process {} {} {}'.format(chain_spec, adapter, rpc))
-    logg.info('upcoming {}'.format(upcoming))
+def process_outgoing(chain_spec, adapter, rpc, limit=50):
+    adapter = None
+    process_err = None
+    for i in range(2):
+        try:
+            adapter = ChaindFsAdapter(
+                settings.get('CHAIN_SPEC'),
+                settings.dir_for('queue'),
+                EthCacheTx,
+                dispatcher,
+                )
+        except BackendIntegrityError as e:
+            process_err = e
+            continue
+
+    if adapter == None:
+        raise BackendIntegrityError(process_err)
+    
+    upcoming = adapter.upcoming(limit=limit)
+    logg.info('processor has {} candidates for {}, processing with limit {} adapter {} rpc {}'.format(len(upcoming), chain_spec, limit, adapter, rpc))
     i = 0
     for tx_hash in upcoming:
         if adapter.dispatch(tx_hash):
