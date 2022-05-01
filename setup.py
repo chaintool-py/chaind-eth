@@ -27,7 +27,7 @@ while True:
     l = f.readline()
     if l == '':
         break
-    test_requirements.append(l.rstrip())
+    erc20_requirements.append(l.rstrip())
 f.close()
 
 
