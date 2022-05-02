@@ -1,4 +1,4 @@
-chaind~=0.2.0
+chaind~=0.2.2
 hexathon~=0.1.5
 chainlib-eth~=0.1.1
 pyxdg~=0.27

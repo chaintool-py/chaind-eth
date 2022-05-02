@@ -11,7 +11,7 @@ from chainlib.chain import ChainSpec
 from chainqueue.cache import CacheTokenTx
 from chainlib.error import RPCException
 from chainlib.status import Status as TxStatus
-from chaind.unittest.common import TestChaindFsBase
+from chaind.unittest.fs import TestChaindFsBase
 from chaind.driver import QueueDriver
 from chaind.filter import StateFilter
 from chainlib.eth.gas import Gas
