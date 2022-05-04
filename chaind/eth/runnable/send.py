@@ -118,7 +118,7 @@ def main():
         m = GasTokenResolver
     token_resolver = m(chain_spec, rpc.get_sender_address(), rpc.get_signer(), rpc.get_gas_oracle(), rpc.get_nonce_oracle())
     
-    processor = Processor(token_resolver, config.get('_SOURCE'))
+    processor = Processor(token_resolver, config.get('_SOURCE'), use_checksum=not config.get('_UNSAFE'))
     processor.add_processor(CSVProcessor())
 
     sends = None

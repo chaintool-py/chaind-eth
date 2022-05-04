@@ -3,7 +3,10 @@ import logging
 
 # external imports
 from chaind.error import TxSourceError
-from chainlib.eth.address import is_checksum_address
+from chainlib.eth.address import (
+        is_checksum_address,
+        to_checksum_address,
+        )
 from chainlib.eth.tx import unpack
 from chainlib.eth.gas import Gas
 from hexathon import (
@@ -17,10 +20,11 @@ logg = logging.getLogger(__name__)
 
 class Processor:
 
-    def __init__(self, resolver, source):
+    def __init__(self, resolver, source, use_checksum=True):
         self.resolver = resolver
         self.source = source
         self.processor = []
+        self.safe = use_checksum
         self.conn = None
         
 
@@ -50,9 +54,14 @@ class Processor:
         txs = []
         for i, r in enumerate(self.content):
             logg.debug('processing {}'.format(r))
-            if not is_checksum_address(r[0]):
-                raise ValueError('invalid checksum address {} in record {}'.format(r[0], i))
-            self.content[i][0] = add_0x(r[0])
+            address = r[0]
+            if self.safe:
+                if not is_checksum_address(address):
+                    raise ValueError('invalid checksum address {} in record {}'.format(address, i))
+            else:
+                address = to_checksum_address(address)
+
+            self.content[i][0] = add_0x(address)
             try:
                 self.content[i][1] = int(r[1])
             except ValueError:
