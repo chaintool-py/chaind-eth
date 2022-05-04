@@ -1,6 +1,6 @@
-chaind~=0.2.2
+chaind~=0.2.4
 hexathon~=0.1.5
 chainlib-eth~=0.1.1
 pyxdg~=0.27
-shep~=0.2.3
+shep~=0.2.5
 funga-eth~=0.6.0
