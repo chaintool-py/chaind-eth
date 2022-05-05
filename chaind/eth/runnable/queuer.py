@@ -83,7 +83,18 @@ signal.signal(signal.SIGTERM, ctrl.shutdown)
 logg.info('session id is ' + settings.get('SESSION_ID'))
 logg.info('session socket path is ' + settings.get('SESSION_SOCKET_PATH'))
 
+
 def main():
+    global dispatcher, settings
+
+    queue_adapter = ChaindFsAdapter(
+        settings.get('CHAIN_SPEC'),
+        settings.dir_for('queue'),
+        EthCacheTx,
+        dispatcher,
+        store_sync=False,
+        )
+
     while True:
         v = None
         client_socket = None
@@ -100,15 +111,8 @@ def main():
 
         if v == None:
             ctrl.process(conn)
+            #queue_adapter = create_adapter(settings, dispatcher)
             continue
-
-        queue_adapter = ChaindFsAdapter(
-            settings.get('CHAIN_SPEC'),
-            settings.dir_for('queue'),
-            EthCacheTx,
-            dispatcher,
-            store_sync=False,
-            )
 
         result_data = None
         r = 0 # no error
