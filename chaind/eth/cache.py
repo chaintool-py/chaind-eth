@@ -21,7 +21,6 @@ class Normalizer(TxHexNormalizer, NoopNormalizer):
         hexathon.to_int(v)
 
 
-
 eth_normalizer = Normalizer()
 
 
