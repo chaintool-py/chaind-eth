@@ -4,6 +4,7 @@ import logging
 
 # external imports
 import chainlib.cli
+import chainlib.eth.cli
 import chainsyncer.cli
 import chaind.cli
 from chaind.setup import Environment
@@ -13,13 +14,32 @@ from hexathon import strip_0x
 from chainsyncer.store.fs import SyncFsStore
 from chainsyncer.driver.chain_interface import ChainInterfaceDriver
 from chainsyncer.error import SyncDone
-
-# local imports
-from chaind.eth.settings import ChaindEthSettings
-
+from chainlib.eth.cli.arg import (
+        Arg,
+        ArgFlag,
+        process_args,
+        )
+from chainlib.eth.cli.config import (
+        Config,
+        process_config,
+        )
+from chainsyncer.cli.arg import (
+        apply_arg as apply_arg_sync,
+        apply_flag as apply_flag_sync,
+        )
+from chainsyncer.data import config_dir as chainsyncer_config_dir
+from chaind.data import config_dir as chaind_config_dir
+from chaind.cli.arg import (
+        apply_arg,
+        apply_flag,
+        )
+from chainlib.eth.cli.log import process_log
+from chaind.settings import ChaindSettings
 
 # local imports
 from chaind.eth.cache import EthCacheTx
+from chaind.eth.settings import process_settings
+
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
@@ -29,33 +49,38 @@ config_dir = os.path.join(script_dir, '..', 'data', 'config')
 
 env = Environment(domain='eth', env=os.environ)
 
-arg_flags = chainlib.cli.argflag_std_base | chainlib.cli.Flag.CHAIN_SPEC
-argparser = chainlib.cli.ArgumentParser(arg_flags)
+arg_flags = ArgFlag()
+arg_flags = apply_flag_sync(arg_flags)
+arg_flags = apply_flag(arg_flags)
 
-local_arg_flags = chaind.cli.argflag_local_base
-chaind.cli.process_flags(argparser, local_arg_flags)
+arg = Arg(arg_flags)
+arg = apply_arg_sync(arg)
+arg = apply_arg(arg)
 
-sync_flags = chainsyncer.cli.SyncFlag.RANGE | chainsyncer.cli.SyncFlag.HEAD
-chainsyncer.cli.process_flags(argparser, sync_flags)
+flags = arg_flags.STD_BASE | arg_flags.CHAIN_SPEC | arg_flags.PROVIDER
+flags = arg_flags.more(flags, arg_flags.SYNC_RANGE_EXT)
+flags = arg_flags.more(flags, arg_flags.CHAIND_BASE)
 
+argparser = chainlib.eth.cli.ArgumentParser()
+argparser = process_args(argparser, arg, flags)
 args = argparser.parse_args()
 
-base_config_dir = [
-    chainsyncer.cli.config_dir,
-    chaind.cli.config_dir,
-        ]
-config = chainlib.cli.Config.from_args(args, arg_flags, base_config_dir=base_config_dir)
-config = chainsyncer.cli.process_config(config, args, sync_flags)
-config = chaind.cli.process_config(config, args, local_arg_flags)
+logg = process_log(args, logg)
+
+config = Config()
+config.add_schema_dir(chainsyncer_config_dir)
+config.add_schema_dir(chaind_config_dir)
+config = process_config(config, arg, args, flags)
+#config = process_config_local(config, arg, args, flags)
 config.add('eth', 'CHAIND_ENGINE', False)
 config.add('sync', 'CHAIND_COMPONENT', False)
 logg.debug('config loaded:\n{}'.format(config))
 
-settings = ChaindEthSettings(include_sync=True)
-settings.process(config)
+settings = ChaindSettings()
+settings = process_settings(settings, config)
+logg.debug('settings loaded:\n{}'.format(settings))
 
-logg.debug('settings:\n{}'.format(settings))
-
+sys.exit(0)
 
 def main():
     fltr = StateFilter(settings.get('CHAIN_SPEC'), settings.dir_for('queue'), EthCacheTx)
