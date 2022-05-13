@@ -3,10 +3,7 @@ import os
 import logging
 
 # external imports
-import chainlib.cli
 import chainlib.eth.cli
-import chainsyncer.cli
-import chaind.cli
 from chaind.setup import Environment
 from chaind.filter import StateFilter
 from chainlib.eth.block import block_latest
@@ -38,7 +35,10 @@ from chaind.settings import ChaindSettings
 
 # local imports
 from chaind.eth.cache import EthCacheTx
-from chaind.eth.settings import process_settings
+from chaind.eth.settings import (
+    process_settings,
+    process_sync,
+    )
 
 
 logging.basicConfig(level=logging.WARNING)
@@ -57,7 +57,7 @@ arg = Arg(arg_flags)
 arg = apply_arg_sync(arg)
 arg = apply_arg(arg)
 
-flags = arg_flags.STD_BASE | arg_flags.CHAIN_SPEC | arg_flags.PROVIDER
+flags = arg_flags.STD_BASE | arg_flags.CHAIN_SPEC | arg_flags.PROVIDER | arg_flags.SEQ | arg_flags.STATE
 flags = arg_flags.more(flags, arg_flags.SYNC_RANGE_EXT)
 flags = arg_flags.more(flags, arg_flags.CHAIND_BASE)
 
@@ -71,27 +71,26 @@ config = Config()
 config.add_schema_dir(chainsyncer_config_dir)
 config.add_schema_dir(chaind_config_dir)
 config = process_config(config, arg, args, flags)
-#config = process_config_local(config, arg, args, flags)
 config.add('eth', 'CHAIND_ENGINE', False)
 config.add('sync', 'CHAIND_COMPONENT', False)
 logg.debug('config loaded:\n{}'.format(config))
 
-settings = ChaindSettings()
+settings = ChaindSettings(include_sync=True)
 settings = process_settings(settings, config)
+settings = process_sync(settings, config)
 logg.debug('settings loaded:\n{}'.format(settings))
 
-sys.exit(0)
 
 def main():
     fltr = StateFilter(settings.get('CHAIN_SPEC'), settings.dir_for('queue'), EthCacheTx)
-    sync_store = SyncFsStore(settings.get('SESSION_DATA_DIR'), session_id=settings.get('SESSION_ID'))
+    sync_store = SyncFsStore(settings.get('SESSION_DATA_PATH'), session_id=settings.get('SESSION_ID'))
     sync_store.register(fltr)
 
     logg.debug('session block offset {}'.format(settings.get('SYNCER_OFFSET')))
 
     drv = ChainInterfaceDriver(sync_store, settings.get('SYNCER_INTERFACE'), offset=settings.get('SYNCER_OFFSET'), target=settings.get('SYNCER_LIMIT'))
     try:
-        drv.run(settings.get('RPC'))
+        drv.run(settings.get('CONN'))
     except SyncDone as e:
         logg.info('sync done: {}'.format(e))
    

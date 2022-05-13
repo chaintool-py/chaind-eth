@@ -5,8 +5,23 @@ import signal
 
 # external imports
 import chainlib.eth.cli
-import chaind.cli
-import chainqueue.cli
+from chainlib.eth.cli.arg import (
+        Arg,
+        ArgFlag,
+        process_args,
+        )
+from chainlib.eth.cli.config import (
+        Config,
+        process_config,
+        )
+from chainqueue.cli.arg import (
+        apply_arg as apply_arg_queue,
+        apply_flag as apply_flag_queue,
+        )
+from chaind.cli.arg import (
+        apply_arg,
+        apply_flag,
+        )
 from chaind.session import SessionController
 from chaind.setup import Environment
 from chaind.error import (
@@ -29,11 +44,21 @@ from chainlib.encode import TxHexNormalizer
 from chainlib.chain import ChainSpec
 from chaind.adapters.fs import ChaindFsAdapter
 from chaind.dispatch import DispatchProcessor
+from chainqueue.data import config_dir as chainqueue_config_dir
+from chaind.data import config_dir as chaind_config_dir
+from chainlib.eth.cli.log import process_log
 
 # local imports
 from chaind.eth.cache import EthCacheTx
-from chaind.eth.settings import ChaindEthSettings
+from chaind.eth.settings import ChaindSettings
 from chaind.eth.dispatch import EthDispatcher
+from chaind.eth.settings import process_settings
+from chaind.settings import (
+        process_queue,
+        process_socket,
+        process_dispatch,
+        )
+
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
@@ -43,37 +68,41 @@ config_dir = os.path.join(script_dir, '..', 'data', 'config')
 
 env = Environment(domain='eth', env=os.environ)
 
-arg_flags = chainlib.eth.cli.argflag_std_read
-argparser = chainlib.eth.cli.ArgumentParser(arg_flags)
+arg_flags = ArgFlag()
+arg_flags = apply_flag_queue(arg_flags)
+arg_flags = apply_flag(arg_flags)
 
-queue_arg_flags = 0
-chainqueue.cli.process_flags(argparser, queue_arg_flags)
+arg = Arg(arg_flags)
+arg = apply_arg_queue(arg)
+arg = apply_arg(arg)
 
-local_arg_flags = chaind.cli.argflag_local_base | chaind.cli.ChaindFlag.DISPATCH | chaind.cli.ChaindFlag.SOCKET
-chaind.cli.process_flags(argparser, local_arg_flags)
+flags = arg_flags.STD_READ | arg_flags.QUEUE | arg_flags.STATE
 
+argparser = chainlib.eth.cli.ArgumentParser()
+argparser = process_args(argparser, arg, flags)
 args = argparser.parse_args()
 
-base_config_dir = [chainqueue.cli.config_dir, chaind.cli.config_dir]
-config = chainlib.eth.cli.Config.from_args(args, arg_flags, base_config_dir=base_config_dir)
-config = chaind.cli.process_config(config, args, local_arg_flags)
-config = chainqueue.cli.process_config(config, args, queue_arg_flags)
+logg = process_log(args, logg)
+
+config = Config()
+config.add_schema_dir(chainqueue_config_dir)
+config.add_schema_dir(chaind_config_dir)
+config = process_config(config, arg, args, flags)
 config.add('eth', 'CHAIND_ENGINE', False)
-config.add('queue', 'CHAIND_COMPONENT', False)
+config.add('sync', 'CHAIND_COMPONENT', False)
 logg.debug('config loaded:\n{}'.format(config))
 
-settings = ChaindEthSettings(include_queue=True)
-settings.process(config)
-
-logg.debug('settings:\n{}'.format(settings))
-
-rpc = chainlib.eth.cli.Rpc()
-conn = rpc.connect_by_config(config)
+settings = ChaindSettings(include_sync=True)
+settings = process_settings(settings, config)
+settings = process_queue(settings, config)
+settings = process_socket(settings, config)
+settings = process_dispatch(settings, config)
+logg.debug('settings loaded:\n{}'.format(settings))
 
 tx_normalizer = TxHexNormalizer().tx_hash
 token_cache_store = CacheTokenTx(settings.get('CHAIN_SPEC'), normalizer=tx_normalizer)
 
-dispatcher = EthDispatcher(conn)
+dispatcher = EthDispatcher(settings.get('CONN'))
 processor = DispatchProcessor(settings.get('CHAIN_SPEC'), settings.dir_for('queue'), dispatcher)
 ctrl = SessionController(settings, processor.process)
 
@@ -110,7 +139,7 @@ def main():
             pass
 
         if v == None:
-            ctrl.process(conn)
+            ctrl.process(settings.get('CONN'))
             #queue_adapter = create_adapter(settings, dispatcher)
             continue
 
