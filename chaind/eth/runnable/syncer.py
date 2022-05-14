@@ -41,7 +41,6 @@ from chaind.eth.settings import (
     )
 
 
-logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
 
 script_dir = os.path.dirname(os.path.realpath(__file__))

@@ -10,15 +10,40 @@ import socket
 
 # external imports
 import chainlib.eth.cli
-import chainqueue.cli
-import chaind.cli
+from chainlib.eth.cli.arg import (
+        Arg,
+        ArgFlag,
+        process_args,
+        )
+from chainlib.eth.cli.config import (
+        Config,
+        process_config,
+        )
 from chaind.setup import Environment
 from chainlib.eth.gas import price
 from chainlib.chain import ChainSpec
 from hexathon import strip_0x
+from chainqueue.cli.arg import (
+        apply_arg as apply_arg_queue,
+        apply_flag as apply_flag_queue,
+        )
+from chainqueue.data import config_dir as chainqueue_config_dir
+from chaind.data import config_dir as chaind_config_dir
+from chaind.cli.arg import (
+        apply_arg,
+        apply_flag,
+        )
+from chainlib.eth.cli.log import process_log
+from chaind.settings import process_queue
+from chaind.settings import ChaindSettings
+from chaind.error import TxSourceError
+from chainlib.error import (
+        InitializationError,
+        SignerMissingException,
+        )
+from chaind.cli.config import process_config as process_config_local
 
 # local imports
-from chaind.error import TxSourceError
 from chaind.eth.token.process import Processor
 from chaind.eth.token.gas import GasTokenResolver
 from chaind.eth.cli.csv import CSVProcessor
@@ -26,45 +51,56 @@ from chaind.eth.cli.output import (
         Outputter,
         OpMode,
         )
-from chaind.eth.settings import ChaindEthSettings
+from chaind.eth.settings import process_settings
 
-logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
 
-arg_flags = chainlib.eth.cli.argflag_std_write
-argparser = chainlib.eth.cli.ArgumentParser(arg_flags, arg_long={'-s': '--send-rpc'})
-argparser.add_positional('source', required=False, type=str, help='Transaction source file')
 
-local_arg_flags = chaind.cli.argflag_local_socket_client | chaind.cli.ChaindFlag.TOKEN
-chaind.cli.process_flags(argparser, local_arg_flags)
+def process_settings_local(settings, config):
+#    if settings.get('SIGNER') == None:
+#        raise SignerMissingException('signer missing')
+    return settings
 
-chainqueue.cli.process_flags(argparser, 0)
-
-args = argparser.parse_args()
 
 env = Environment(domain='eth', env=os.environ)
 
-base_config_dir = [chaind.cli.config_dir, chainqueue.cli.config_dir]
-config = chainlib.eth.cli.Config.from_args(args, arg_flags, base_config_dir=base_config_dir)
-config = chainqueue.cli.process_config(config, args, 0)
-config = chaind.cli.process_config(config, args, local_arg_flags)
+arg_flags = ArgFlag()
+arg_flags = apply_flag_queue(arg_flags)
+arg_flags = apply_flag(arg_flags)
+
+arg = Arg(arg_flags)
+arg = apply_arg_queue(arg)
+arg = apply_arg(arg)
+arg.set_long('s', 'send-rpc')
+
+flags = arg_flags.STD_WRITE | arg_flags.TOKEN | arg_flags.SOCKET_CLIENT | arg_flags.STATE | arg_flags.WALLET
+
+argparser = chainlib.eth.cli.ArgumentParser()
+argparser = process_args(argparser, arg, flags)
+argparser.add_argument('source', help='Transaction source file')
+args = argparser.parse_args()
+
+logg = process_log(args, logg)
+
+config = Config()
+config.add_schema_dir(chainqueue_config_dir)
+config.add_schema_dir(chaind_config_dir)
+config = process_config(config, arg, args, flags)
+config = process_config_local(config, arg, args, flags)
 config.add(args.source, '_SOURCE', False)
-config.add('eth', 'CHAIND_ENGINE', False)
 config.add('queue', 'CHAIND_COMPONENT', False)
+config.add('eth', 'CHAIND_ENGINE', False)
 logg.debug('config loaded:\n{}'.format(config))
 
-wallet = chainlib.eth.cli.Wallet()
-wallet.from_config(config)
-
-settings = ChaindEthSettings(include_queue=True)
-settings.process(config)
-
-logg.debug('settings:\n{}'.format(settings))
-
-rpc = chainlib.eth.cli.Rpc(wallet=wallet)
-conn = rpc.connect_by_config(config)
-
-chain_spec = ChainSpec.from_chain_str(config.get('CHAIN_SPEC'))
+try:
+    settings = ChaindSettings(include_sync=True)
+    settings = process_settings(settings, config)
+    settings = process_queue(settings, config)
+    settings = process_settings_local(settings, config)
+except InitializationError as e:
+    sys.stderr.write('Initialization error: ' + str(e) + '\n')
+    sys.exit(1)
+logg.debug('settings loaded:\n{}'.format(settings))
 
 mode = OpMode.STDOUT
 
@@ -100,7 +136,14 @@ class SocketSender:
 
     def send(self, tx):
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.connect(self.path)
+        err = None
+        try:
+            s.connect(self.path)
+        except FileNotFoundError as e:
+            err = e
+        if err != None:
+            s.close()
+            raise err
         s.sendall(tx.encode('utf-8'))
         r = s.recv(68)
         s.close()
@@ -108,6 +151,7 @@ class SocketSender:
 
 
 def main():
+    conn = settings.get('CONN')
     token_resolver = None
     if settings.get('TOKEN_MODULE') != None:
         import importlib
@@ -116,7 +160,13 @@ def main():
     else:
         from chaind.eth.token.gas import GasTokenResolver
         m = GasTokenResolver
-    token_resolver = m(chain_spec, rpc.get_sender_address(), rpc.get_signer(), rpc.get_gas_oracle(), rpc.get_nonce_oracle())
+    token_resolver = m(
+            settings.get('CHAIN_SPEC'),
+            settings.get('SENDER_ADDRESS'),
+            settings.get('SIGNER'),
+            settings.get('GAS_ORACLE'),
+            settings.get('NONCE_ORACLE'),
+            )
     
     processor = Processor(token_resolver, config.get('_SOURCE'), use_checksum=not config.get('_UNSAFE'))
     processor.add_processor(CSVProcessor())
@@ -143,7 +193,12 @@ def main():
             break
         tx_hex = tx_bytes.hex()
         if sender != None:
-            r = sender.send(tx_hex)
+            r = None
+            try:
+                r = sender.send(tx_hex)
+            except FileNotFoundError as e:
+                sys.stderr.write('send to socket {} failed: {}\n'.format(sender.path, e))
+                sys.exit(1)
             logg.info('sent {} result {}'.format(tx_hex, r))
         print(out.do(tx_hex))
 
