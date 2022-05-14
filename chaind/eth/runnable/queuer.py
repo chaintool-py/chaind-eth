@@ -47,6 +47,7 @@ from chaind.dispatch import DispatchProcessor
 from chainqueue.data import config_dir as chainqueue_config_dir
 from chaind.data import config_dir as chaind_config_dir
 from chainlib.eth.cli.log import process_log
+from chaind.cli.config import process_config as process_config_local
 
 # local imports
 from chaind.eth.cache import EthCacheTx
@@ -58,7 +59,6 @@ from chaind.settings import (
         process_socket,
         process_dispatch,
         )
-
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
@@ -88,6 +88,7 @@ config = Config()
 config.add_schema_dir(chainqueue_config_dir)
 config.add_schema_dir(chaind_config_dir)
 config = process_config(config, arg, args, flags)
+config = process_config_local(config, arg, args, flags)
 config.add('eth', 'CHAIND_ENGINE', False)
 config.add('sync', 'CHAIND_COMPONENT', False)
 logg.debug('config loaded:\n{}'.format(config))

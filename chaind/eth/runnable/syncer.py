@@ -32,6 +32,8 @@ from chaind.cli.arg import (
         )
 from chainlib.eth.cli.log import process_log
 from chaind.settings import ChaindSettings
+from chaind.cli.config import process_config as process_config_local
+from chainsyncer.cli.config import process_config as process_config_syncer
 
 # local imports
 from chaind.eth.cache import EthCacheTx
@@ -70,6 +72,8 @@ config = Config()
 config.add_schema_dir(chainsyncer_config_dir)
 config.add_schema_dir(chaind_config_dir)
 config = process_config(config, arg, args, flags)
+config = process_config_local(config, arg, args, flags)
+config = process_config_syncer(config, arg, args, flags)
 config.add('eth', 'CHAIND_ENGINE', False)
 config.add('sync', 'CHAIND_COMPONENT', False)
 logg.debug('config loaded:\n{}'.format(config))
