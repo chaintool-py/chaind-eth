@@ -73,7 +73,7 @@ arg = apply_arg_queue(arg)
 arg = apply_arg(arg)
 arg.set_long('s', 'send-rpc')
 
-flags = arg_flags.STD_WRITE | arg_flags.TOKEN | arg_flags.SOCKET_CLIENT | arg_flags.STATE | arg_flags.WALLET
+flags = arg_flags.STD_WRITE | arg_flags.TOKEN | arg_flags.SOCKET_CLIENT | arg_flags.STATE | arg_flags.WALLET | arg_flags.SESSION
 
 argparser = chainlib.eth.cli.ArgumentParser()
 argparser = process_args(argparser, arg, flags)

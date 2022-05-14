@@ -76,7 +76,7 @@ arg = Arg(arg_flags)
 arg = apply_arg_queue(arg)
 arg = apply_arg(arg)
 
-flags = arg_flags.STD_READ | arg_flags.QUEUE | arg_flags.STATE
+flags = arg_flags.STD_READ | arg_flags.QUEUE | arg_flags.STATE | arg_flags.SESSION
 
 argparser = chainlib.eth.cli.ArgumentParser()
 argparser = process_args(argparser, arg, flags)
