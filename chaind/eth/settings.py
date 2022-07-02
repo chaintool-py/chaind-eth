@@ -27,5 +27,6 @@ def process_settings(settings, config):
     settings = process_backend(settings, config)
     settings = process_session(settings, config)
     settings = process_socket(settings, config)
+    settings = process_token(settings, config)
 
     return settings
