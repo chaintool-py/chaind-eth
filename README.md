@@ -15,7 +15,7 @@ It capabilities are (unchecked box means feature not yet completed):
 	* [x] only show transaction that have not yet completed
 - [x] systemd unit / socket service
 - [x] sql storage backend
-- [ ] filesystem storage backend
+- [x] filesystem storage backend
 
 
 ## prerequisites
@@ -41,11 +41,11 @@ For any python command / executable used below:
 Currently there is no more practical way of setting up the database backend than to pull the repository and run a database migration script :/
 
 ```
-git clone https://gitlab.com/chaintool/chaind
+git clone https://git.defalsify.org/chaind
 cd chaind
 python -m venv .venv
 . .venv/bin/activate
-pip install --extra-index-url https://pip.grassrootseconomics.net:8433 -r requirements.txt
+pip install --extra-index-url https://pip.grassrootseconomics.net -r requirements.txt
 # the following will set up your database in ~/.local/share/chaind/eth/chaind.sqlite
 PYTHONPATH=. CHAIND_DOMAIN=eth DATABASE_ENGINE=sqlite python scripts/migrate.py
 ```
@@ -66,7 +66,7 @@ d=$(mktemp -d) && cd $d
 ```
 python -m venv .venv
 . .venv/bin/activate
-pip install --extra-index-url https://pip.grassrootseconomics.net:8433 "chaind-eth>=0.0.3a5"
+pip install --extra-index-url https://pip.grassrootseconomics.net "chaind-eth>=0.0.3a5"
 ```
 
 ### start the services
@@ -194,7 +194,7 @@ If a valid `--socket` is given (i.e. the socket of the `chaind-eth-server`) the 
 
 ### Using token symbols
 
-If token symols are to be used in some or all values of column 3, then a valid `--token-index` executable address is required (in this case, a smart contract implementing the [`registry`](https://gitlab.com/grassrootseconomics/cic-contracts/-/blob/master/solidity/Registry.sol) contract interface).
+If token symols are to be used in some or all values of column 3, then a valid `--token-index` executable address is required (in this case, a smart contract implementing the [`registry`](https://gitlab.com/cicnet/eth-contract-registry/-/blob/master/solidity/Registry.sol) contract interface).
 
 
 ### Input validity checks
