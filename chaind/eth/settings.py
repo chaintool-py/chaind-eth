@@ -16,7 +16,9 @@ def process_common(settings, config):
 
 
 def process_sync(settings, config):
-    settings.set('SYNCER_INTERFACE', EthChainInterface())
+    dialect_filter = settings.get('RPC_DIALECT_FILTER')
+    settings.set('SYNCER_INTERFACE', EthChainInterface(dialect_filter=dialect_filter))
+    #settings.set('SYNCER_INTERFACE', EthChainInterface())
     settings = process_sync_range(settings, config)
     return settings
 
