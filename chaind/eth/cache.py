@@ -1,3 +1,6 @@
+# standard imports
+import logging
+
 # external imports
 from hexathon import strip_0x
 from chainqueue.cache import (
@@ -7,6 +10,7 @@ from chainqueue.cache import (
 from chainlib.eth.tx import unpack
 from chainlib.encode import TxHexNormalizer
 
+logg = logging.getLogger(__name__)
 
 class Normalizer(TxHexNormalizer, NoopNormalizer):
 
@@ -33,6 +37,7 @@ class EthCacheTx(CacheTx):
     def deserialize(self, signed_tx):
         signed_tx_bytes = bytes.fromhex(strip_0x(signed_tx))
         tx = unpack(signed_tx_bytes, self.chain_spec)
+        logg.debug('have tx {}'.format(tx))
         self.hash = eth_normalizer.hash(tx['hash'])
         self.sender = eth_normalizer.address(tx['from'])
         self.recipient = eth_normalizer.address(tx['to'])

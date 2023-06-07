@@ -168,7 +168,8 @@ def main():
             settings.get('NONCE_ORACLE'),
             )
     
-    processor = Processor(token_resolver, config.get('_SOURCE'), use_checksum=not config.get('_UNSAFE'))
+    logg.debug('source {}'.format(config.get('_SOURCE')))
+    processor = Processor(token_resolver, config.get('_SOURCE')[0], use_checksum=not config.get('_UNSAFE'))
     processor.add_processor(CSVProcessor())
 
     sends = None
